@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { BrowserManager } from './browser/BrowserManager.js';
 import { AgentLoop } from './agent/AgentLoop.js';
 import { AgentConfig } from './agent/ActionSchema.js';
