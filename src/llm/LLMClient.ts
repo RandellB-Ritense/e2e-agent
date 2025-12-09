@@ -15,7 +15,7 @@ export interface LLMClient {
  * Configuration for LLM clients
  */
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic';
+  provider: 'openai' | 'anthropic' | 'mistral';
   apiKey: string;
   model?: string;
   temperature?: number;

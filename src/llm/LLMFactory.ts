@@ -1,6 +1,7 @@
 import { LLMClient, LLMConfig } from './LLMClient.js';
 import { OpenAIClient } from './OpenAIClient.js';
 import { AnthropicClient } from './AnthropicClient.js';
+import { MistralClient } from './MistralClient.js';
 
 /**
  * Factory for creating LLM clients
@@ -17,6 +18,8 @@ export class LLMFactory {
         return new OpenAIClient(config);
       case 'anthropic':
         return new AnthropicClient(config);
+      case 'mistral':
+        return new MistralClient(config);
       default:
         throw new Error(`Unsupported LLM provider: ${config.provider}`);
     }
@@ -27,12 +30,12 @@ export class LLMFactory {
    * @returns An LLM client instance
    */
   static createFromEnv(): LLMClient {
-    const provider = (process.env.LLM_PROVIDER || 'openai') as 'openai' | 'anthropic';
-    const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+    const provider = (process.env.LLM_PROVIDER || 'openai') as 'openai' | 'anthropic' | 'mistral';
+    const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.MISTRAL_API_KEY;
 
     if (!apiKey) {
       throw new Error(
-        'No API key found. Set LLM_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY environment variable.'
+        'No API key found. Set LLM_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or MISTRAL_API_KEY environment variable.'
       );
     }
 

@@ -32,6 +32,7 @@ ai-e2e-agent/
       LLMClient.ts       # LLM client interface
       OpenAIClient.ts    # OpenAI integration
       AnthropicClient.ts # Anthropic integration
+      MistralClient.ts   # Mistral integration
       LLMFactory.ts      # Creates LLM clients from config
     main.ts              # Entry point
   package.json
@@ -43,10 +44,10 @@ ai-e2e-agent/
 
 ✅ **Real DOM Observation** - Extracts all interactive elements (links, buttons, inputs, etc.)
 ✅ **Smart Selector Generation** - Creates reliable CSS selectors prioritizing test IDs, IDs, names, etc.
-✅ **LLM-Based Planning** - Uses OpenAI or Anthropic models for intelligent decision-making
+✅ **LLM-Based Planning** - Uses OpenAI, Anthropic, or Mistral models for intelligent decision-making
 ✅ **Action Execution** - Performs real browser automation with retry logic
 ✅ **Error Handling** - Automatic retries with exponential backoff
-✅ **Multiple LLM Providers** - Supports OpenAI (GPT-4) and Anthropic (Claude)
+✅ **Multiple LLM Providers** - Supports OpenAI (GPT-4), Anthropic (Claude), and Mistral
 
 ## Setup
 
@@ -82,6 +83,16 @@ export LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
 # Optional:
 export LLM_MODEL=claude-3-5-sonnet-20241022  # default
+export LLM_TEMPERATURE=0.7
+export LLM_MAX_TOKENS=1000
+```
+
+#### Option C: Mistral
+```bash
+export LLM_PROVIDER=mistral
+export MISTRAL_API_KEY=your-mistral-key
+# Optional:
+export LLM_MODEL=mistral-large-latest  # default
 export LLM_TEMPERATURE=0.7
 export LLM_MAX_TOKENS=1000
 ```
@@ -227,11 +238,12 @@ Max steps: 10
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LLM_PROVIDER` | LLM provider: `openai` or `anthropic` | `openai` |
+| `LLM_PROVIDER` | LLM provider: `openai`, `anthropic`, or `mistral` | `openai` |
 | `LLM_API_KEY` | API key for LLM provider | - |
 | `OPENAI_API_KEY` | OpenAI API key | - |
 | `ANTHROPIC_API_KEY` | Anthropic API key | - |
-| `LLM_MODEL` | Model name | `gpt-4o-mini` or `claude-3-5-sonnet-20241022` |
+| `MISTRAL_API_KEY` | Mistral API key | - |
+| `LLM_MODEL` | Model name | `gpt-4o-mini`, `claude-3-5-sonnet-20241022`, or `mistral-large-latest` |
 | `LLM_TEMPERATURE` | Temperature (0-1) | `0.7` |
 | `LLM_MAX_TOKENS` | Max tokens in response | `1000` |
 
@@ -239,7 +251,7 @@ Max steps: 10
 
 ### API Key Not Found
 ```
-Error: No API key found. Set LLM_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY
+Error: No API key found. Set LLM_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or MISTRAL_API_KEY
 ```
 **Solution:** Set the appropriate environment variable for your LLM provider.
 
