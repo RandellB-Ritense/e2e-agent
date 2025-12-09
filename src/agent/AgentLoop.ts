@@ -3,6 +3,7 @@ import { AgentConfig } from './ActionSchema.js';
 import { Observer } from './Observer.js';
 import { Planner } from './Planner.js';
 import { Executor } from './Executor.js';
+import { LLMClient } from '../llm/LLMClient.js';
 
 /**
  * Main agent loop that coordinates observation, planning, and execution
@@ -13,9 +14,9 @@ export class AgentLoop {
   private executor: Executor;
   private maxSteps: number;
 
-  constructor(private page: Page, private config: AgentConfig) {
+  constructor(private page: Page, private config: AgentConfig, llmClient: LLMClient) {
     this.observer = new Observer(page);
-    this.planner = new Planner(config.goal);
+    this.planner = new Planner(config.goal, llmClient);
     this.executor = new Executor(page);
     this.maxSteps = config.maxSteps ?? 30;
   }

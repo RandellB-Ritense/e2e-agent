@@ -1,6 +1,7 @@
 import { BrowserManager } from './browser/BrowserManager.js';
 import { AgentLoop } from './agent/AgentLoop.js';
 import { AgentConfig } from './agent/ActionSchema.js';
+import { LLMFactory } from './llm/LLMFactory.js';
 
 /**
  * Main entry point for the AI E2E Agent
@@ -9,6 +10,11 @@ async function main() {
   const browserManager = new BrowserManager();
 
   try {
+    // Create LLM client from environment variables
+    console.log('[Main] Initializing LLM client...');
+    const llmClient = LLMFactory.createFromEnv();
+    console.log('[Main] LLM client initialized\n');
+
     // Launch the browser
     await browserManager.launch();
 
@@ -23,7 +29,7 @@ async function main() {
 
     // Create and run the agent loop
     const page = browserManager.getPage();
-    const agentLoop = new AgentLoop(page, config);
+    const agentLoop = new AgentLoop(page, config, llmClient);
     await agentLoop.run();
 
     // Keep the browser open for a moment to see the final state
