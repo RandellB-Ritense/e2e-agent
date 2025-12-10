@@ -4,6 +4,7 @@ import { Observer } from './Observer.js';
 import { Planner } from './Planner.js';
 import { Executor } from './Executor.js';
 import { LLMClient } from '../llm/LLMClient.js';
+import { CookieHandler } from '../utils/CookieHandler.js';
 
 /**
  * Main agent loop that coordinates observation, planning, and execution
@@ -29,6 +30,12 @@ export class AgentLoop {
     console.log(`Goal: ${this.config.goal}`);
     console.log(`Max steps: ${this.maxSteps}`);
     console.log('===========================\n');
+
+    // Automatically dismiss cookie banners if enabled (default: true)
+    const autoDismissCookies = this.config.autoDismissCookies ?? true;
+    if (autoDismissCookies) {
+      await CookieHandler.dismissCookieBanner(this.page);
+    }
 
     let stepNumber = 0;
     let shouldContinue = true;

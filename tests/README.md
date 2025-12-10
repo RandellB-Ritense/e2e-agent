@@ -34,6 +34,22 @@ Maximum number of actions the agent can take (default: 30).
 15
 ```
 
+#### Auto Dismiss Cookies
+Automatically dismiss cookie consent banners before starting the test (default: true).
+
+```markdown
+## Auto Dismiss Cookies
+true
+```
+
+The framework will automatically detect and click common cookie consent buttons like:
+- "Accept All"
+- "Accept Cookies"
+- "I Agree"
+- "Allow All"
+
+This runs once before the agent loop starts. Set to `false` to disable if you need to test cookie banner interactions explicitly.
+
 #### Success Criteria
 List of conditions that indicate successful test completion.
 

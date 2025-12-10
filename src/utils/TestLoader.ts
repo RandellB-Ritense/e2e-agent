@@ -107,12 +107,14 @@ export class TestLoader {
     const testData = this.extractKeyValuePairs(sections['Test Data Suggestions'] || sections['Test Data']);
     const notes = this.extractText(sections['Notes']);
     const description = this.extractText(sections['Description']);
+    const autoDismissCookies = this.extractBoolean(sections['Auto Dismiss Cookies']);
 
     return {
       name,
       goal,
       startUrl,
       maxSteps,
+      autoDismissCookies,
       description,
       successCriteria,
       testData,
@@ -136,6 +138,24 @@ export class TestLoader {
     const text = this.extractText(lines);
     const num = parseInt(text, 10);
     return isNaN(num) ? undefined : num;
+  }
+
+  /**
+   * Extract a boolean from section lines
+   * Accepts: true, false, yes, no, enabled, disabled (case-insensitive)
+   */
+  private static extractBoolean(lines?: string[]): boolean | undefined {
+    if (!lines || lines.length === 0) return undefined;
+    const text = this.extractText(lines).toLowerCase();
+
+    if (text === 'true' || text === 'yes' || text === 'enabled') {
+      return true;
+    }
+    if (text === 'false' || text === 'no' || text === 'disabled') {
+      return false;
+    }
+
+    return undefined;
   }
 
   /**

@@ -26,4 +26,5 @@ export interface AgentConfig {
   goal: string;
   startUrl: string;
   maxSteps?: number;
+  autoDismissCookies?: boolean;
 }
