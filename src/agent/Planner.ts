@@ -16,6 +16,7 @@ export interface PlannerContext {
  */
 export class Planner {
   private stepCount = 0;
+  private actionHistory: AgentAction[] = [];
 
   constructor(
     private goal: string,
@@ -36,7 +37,13 @@ export class Planner {
     try {
       // Build prompts
       const systemPrompt = PromptBuilder.buildSystemPrompt();
-      const userPrompt = PromptBuilder.buildUserPrompt(this.goal, observation, this.stepCount, this.context);
+      const userPrompt = PromptBuilder.buildUserPrompt(
+        this.goal,
+        observation,
+        this.stepCount,
+        this.context,
+        this.actionHistory
+      );
 
       // Get LLM response
       console.log('[Planner] Querying LLM for next action...');
@@ -45,6 +52,9 @@ export class Planner {
       // Parse the response
       const action = this.parseAction(response);
       console.log(`[Planner] LLM decided: ${action.action} - ${action.reason}`);
+
+      // Add action to history
+      this.actionHistory.push(action);
 
       return action;
     } catch (error) {

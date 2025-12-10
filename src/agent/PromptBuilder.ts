@@ -1,4 +1,4 @@
-import { Observation } from './ActionSchema.js';
+import { AgentAction, Observation } from './ActionSchema.js';
 
 /**
  * Builds prompts for the LLM planner
@@ -80,7 +80,8 @@ You MUST respond with a single valid JSON object representing ONE action. The JS
       successCriteria?: string[];
       testData?: Record<string, string>;
       notes?: string;
-    }
+    },
+    actionHistory?: AgentAction[]
   ): string {
     let prompt = `## Goal
 ${goal}`;
@@ -107,6 +108,25 @@ When filling forms, use this test data:`;
     if (options?.notes) {
       prompt += `\n\n## Important Notes
 ${options.notes}`;
+    }
+
+    // Add action history if available
+    if (actionHistory && actionHistory.length > 0) {
+      prompt += `\n\n## Previous Actions Taken`;
+      actionHistory.forEach((action, index) => {
+        const stepNum = index + 1;
+        let actionDescription = `Step ${stepNum}: ${action.action}`;
+
+        if ('target' in action && action.target) {
+          actionDescription += ` "${action.target}"`;
+        }
+        if ('value' in action && action.value) {
+          actionDescription += ` with value "${action.value}"`;
+        }
+        actionDescription += ` - ${action.reason}`;
+
+        prompt += `\n${actionDescription}`;
+      });
     }
 
     prompt += `\n\n## Current State
