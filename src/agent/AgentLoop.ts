@@ -7,6 +7,7 @@ import { LLMClient } from '../llm/LLMClient.js';
 import { CookieHandler } from '../utils/CookieHandler.js';
 import { TestDefinition } from '../utils/TestLoader.js';
 import { TestReport, TestStatus, ActionRecord } from '../utils/Reporter.js';
+import { DebugLogger } from '../utils/DebugLogger.js';
 
 /**
  * Main agent loop that coordinates observation, planning, and execution
@@ -57,14 +58,28 @@ export class AgentLoop {
    */
   async run(): Promise<TestReport> {
     this.startTime = new Date();
+
+    // Initialize debug mode
+    await DebugLogger.init(this.config.debug ?? false, this.testName);
+
     console.log('\n=== Starting Agent Loop ===');
     console.log(`Goal: ${this.config.goal}`);
     console.log(`Max steps: ${this.maxSteps}`);
+    if (this.config.debug) {
+      console.log(`Debug mode: ENABLED`);
+      console.log(`Screenshots will be saved to: ${DebugLogger.getScreenshotDir()}`);
+    }
     console.log('===========================\n');
+
+    DebugLogger.section('AGENT LOOP STARTED');
+    DebugLogger.log('AgentLoop', `Test: ${this.testName}`);
+    DebugLogger.log('AgentLoop', `Goal: ${this.config.goal}`);
+    DebugLogger.log('AgentLoop', `Max Steps: ${this.maxSteps}`);
 
     // Automatically dismiss cookie banners if enabled (default: true)
     const autoDismissCookies = this.config.autoDismissCookies ?? true;
     if (autoDismissCookies) {
+      DebugLogger.log('AgentLoop', 'Auto-dismissing cookie banners...');
       await CookieHandler.dismissCookieBanner(this.page);
     }
 
@@ -77,18 +92,31 @@ export class AgentLoop {
       stepNumber++;
       console.log(`\n--- Step ${stepNumber}/${this.maxSteps} ---`);
 
+      DebugLogger.section(`STEP ${stepNumber}`);
       const actionStartTime = Date.now();
       const currentUrl = this.page.url();
 
+      // Capture "before" screenshot
+      await DebugLogger.screenshot(this.page, stepNumber, 'before-action');
+
       try {
         // 1. Observe the current page state
+        const observeStart = Date.now();
         const observation = await this.observer.observe();
+        DebugLogger.logTiming('Observation', Date.now() - observeStart);
 
         // 2. Plan the next action
+        const planStart = Date.now();
         const action = await this.planner.plan(observation);
+        DebugLogger.logTiming('Planning', Date.now() - planStart);
 
         // 3. Execute the action
+        const executeStart = Date.now();
         await this.executor.execute(action);
+        DebugLogger.logTiming('Execution', Date.now() - executeStart);
+
+        // Capture "after" screenshot
+        await DebugLogger.screenshot(this.page, stepNumber, 'after-action');
 
         // Record the action
         const actionRecord: ActionRecord = {
@@ -100,6 +128,8 @@ export class AgentLoop {
         };
         this.actionHistory.push(actionRecord);
 
+        DebugLogger.logTiming('Total step time', Date.now() - actionStartTime);
+
         // 4. Check if we should continue
         if (action.action === 'finish' || action.action === 'error') {
           shouldContinue = false;
@@ -108,6 +138,7 @@ export class AgentLoop {
             lastError = action.reason;
           }
           console.log(`\n[AgentLoop] Stopping: ${action.reason}`);
+          DebugLogger.log('AgentLoop', `Stopping: ${action.reason}`);
         }
 
         // Small delay between steps
@@ -115,6 +146,10 @@ export class AgentLoop {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error(`[AgentLoop] Error in step ${stepNumber}:`, error);
+        DebugLogger.log('AgentLoop', `Error in step ${stepNumber}:`, errorMessage);
+
+        // Capture error screenshot
+        await DebugLogger.screenshot(this.page, stepNumber, 'error');
 
         // Record the failed action if we have one
         if (this.actionHistory.length < stepNumber) {
@@ -140,9 +175,11 @@ export class AgentLoop {
     if (stepNumber >= this.maxSteps) {
       completionReason = `Reached maximum step limit (${this.maxSteps})`;
       console.log(`\n[AgentLoop] ${completionReason}`);
+      DebugLogger.log('AgentLoop', completionReason);
     }
 
     console.log('\n=== Agent Loop Completed ===\n');
+    DebugLogger.section('AGENT LOOP COMPLETED');
 
     // Generate and return the test report
     return this.generateReport(stepNumber, completionReason, lastError);

@@ -1,5 +1,6 @@
 import { Page } from 'playwright';
 import { AgentAction } from './ActionSchema.js';
+import { DebugLogger } from '../utils/DebugLogger.js';
 
 /**
  * Configuration for action execution
@@ -34,6 +35,11 @@ export class Executor {
   async execute(action: AgentAction): Promise<void> {
     console.log(`[Executor] Executing action: ${action.action}`);
     console.log(`[Executor] Reason: ${action.reason}`);
+
+    // Log action in debug mode
+    const target = 'target' in action ? action.target : undefined;
+    const value = 'value' in action ? action.value : undefined;
+    DebugLogger.logAction(action.action, target, value, action.reason);
 
     try {
       switch (action.action) {

@@ -1,6 +1,7 @@
 import { AgentAction, Observation } from './ActionSchema.js';
 import { LLMClient } from '../llm/LLMClient.js';
 import { PromptBuilder } from './PromptBuilder.js';
+import { DebugLogger } from '../utils/DebugLogger.js';
 
 /**
  * Additional context for planning
@@ -45,9 +46,15 @@ export class Planner {
         this.actionHistory
       );
 
+      // Log prompts in debug mode
+      DebugLogger.logPrompt(systemPrompt, userPrompt);
+
       // Get LLM response
       console.log('[Planner] Querying LLM for next action...');
       const response = await this.llmClient.generateCompletion(systemPrompt, userPrompt);
+
+      // Log response in debug mode
+      DebugLogger.logResponse(response);
 
       // Parse the response
       const action = this.parseAction(response);

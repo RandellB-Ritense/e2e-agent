@@ -50,6 +50,29 @@ The framework will automatically detect and click common cookie consent buttons 
 
 This runs once before the agent loop starts. Set to `false` to disable if you need to test cookie banner interactions explicitly.
 
+#### Debug Mode
+Enable verbose debug logging and automatic screenshot capture (default: false).
+
+```markdown
+## Debug
+true
+```
+
+When debug mode is enabled:
+- Full LLM prompts and responses are logged to console and file
+- Screenshots are captured before and after each action
+- Detailed timing information is recorded
+- DOM observation details are logged
+- All logs are saved to `debug-screenshots/` directory
+
+Use debug mode when:
+- Troubleshooting test failures
+- Understanding agent decision-making
+- Analyzing performance issues
+- Developing new test scenarios
+
+Set to `false` or omit for normal operation.
+
 #### Success Criteria
 List of conditions that indicate successful test completion.
 

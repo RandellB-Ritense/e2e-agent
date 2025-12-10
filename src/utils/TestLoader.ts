@@ -108,6 +108,7 @@ export class TestLoader {
     const notes = this.extractText(sections['Notes']);
     const description = this.extractText(sections['Description']);
     const autoDismissCookies = this.extractBoolean(sections['Auto Dismiss Cookies']);
+    const debug = this.extractBoolean(sections['Debug'] || sections['Debug Mode'] || sections['Verbose']);
 
     return {
       name,
@@ -115,6 +116,7 @@ export class TestLoader {
       startUrl,
       maxSteps,
       autoDismissCookies,
+      debug,
       description,
       successCriteria,
       testData,

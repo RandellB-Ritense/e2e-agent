@@ -1,6 +1,7 @@
 import { Page } from 'playwright';
 import { Observation } from './ActionSchema.js';
 import { InteractiveElement, SerializableElement } from './DOMTypes.js';
+import { DebugLogger } from '../utils/DebugLogger.js';
 
 /**
  * Observes the current page state and generates observations
@@ -32,7 +33,12 @@ export class Observer {
    */
   private async getDOMSnapshot(): Promise<string> {
     const elements = await this.extractInteractiveElements();
-    return this.formatElements(elements);
+    const snapshot = this.formatElements(elements);
+
+    // Log detailed observation info in debug mode
+    DebugLogger.logObservation(elements.length, snapshot.length, this.page.url());
+
+    return snapshot;
   }
 
   /**
