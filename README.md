@@ -111,27 +111,71 @@ npm run build
 
 ## Usage
 
-### Basic Usage
+### Running Tests from Markdown Files (Recommended)
 
-Edit `src/main.ts` to customize the goal and starting URL:
+The easiest way to run tests is to create markdown test files in the `tests/` directory:
+
+```bash
+# Run a specific test file
+npm start tests/example-navigation.md
+
+# Or use the full path
+npm start tests/contact-form-example.md
+```
+
+Example test file (`tests/my-test.md`):
+```markdown
+# My Test
+
+## Goal
+Navigate to the About page and verify it contains company information
+
+## Starting URL
+https://example.com
+
+## Max Steps
+10
+
+## Success Criteria
+- About page loaded successfully
+- Page contains company information
+- No errors encountered
+```
+
+See `tests/README.md` for detailed test file format documentation and more examples.
+
+### Running Without a Test File
+
+If no test file is provided, the framework uses a default configuration:
+
+```bash
+npm start
+```
+
+### Programmatic Usage
+
+You can also use the framework programmatically:
 
 ```typescript
+import { TestLoader } from './utils/TestLoader.js';
+import { LLMFactory } from './llm/LLMFactory.js';
+import { AgentLoop } from './agent/AgentLoop.js';
+
+// Load test from file
+const test = await TestLoader.loadTest('tests/my-test.md');
+
+// Or create config manually
 const config: AgentConfig = {
-  goal: 'Navigate to the About page and verify it contains company information',
+  goal: 'Navigate to the About page',
   startUrl: 'https://example.com',
   maxSteps: 10,
 };
 ```
 
-Then run:
-```bash
-npm start
-```
-
 ### Development Mode
 
 ```bash
-npm run dev
+npm run dev tests/example-navigation.md
 ```
 
 ## How It Works
