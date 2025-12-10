@@ -1,10 +1,11 @@
 import { Page } from 'playwright';
 import { AgentConfig } from './ActionSchema.js';
 import { Observer } from './Observer.js';
-import { Planner } from './Planner.js';
+import { Planner, PlannerContext } from './Planner.js';
 import { Executor } from './Executor.js';
 import { LLMClient } from '../llm/LLMClient.js';
 import { CookieHandler } from '../utils/CookieHandler.js';
+import { TestDefinition } from '../utils/TestLoader.js';
 
 /**
  * Main agent loop that coordinates observation, planning, and execution
@@ -17,9 +18,30 @@ export class AgentLoop {
 
   constructor(private page: Page, private config: AgentConfig, llmClient: LLMClient) {
     this.observer = new Observer(page);
-    this.planner = new Planner(config.goal, llmClient);
+
+    // Extract additional context if config is a TestDefinition
+    const plannerContext: PlannerContext | undefined = this.extractPlannerContext(config);
+
+    this.planner = new Planner(config.goal, llmClient, plannerContext);
     this.executor = new Executor(page);
     this.maxSteps = config.maxSteps ?? 30;
+  }
+
+  /**
+   * Extract planner context from config if it's a TestDefinition
+   */
+  private extractPlannerContext(config: AgentConfig): PlannerContext | undefined {
+    const testDef = config as TestDefinition;
+
+    if (testDef.successCriteria || testDef.testData || testDef.notes) {
+      return {
+        successCriteria: testDef.successCriteria,
+        testData: testDef.testData,
+        notes: testDef.notes,
+      };
+    }
+
+    return undefined;
   }
 
   /**

@@ -3,6 +3,15 @@ import { LLMClient } from '../llm/LLMClient.js';
 import { PromptBuilder } from './PromptBuilder.js';
 
 /**
+ * Additional context for planning
+ */
+export interface PlannerContext {
+  successCriteria?: string[];
+  testData?: Record<string, string>;
+  notes?: string;
+}
+
+/**
  * Plans the next action based on the current observation and goal using an LLM
  */
 export class Planner {
@@ -10,7 +19,8 @@ export class Planner {
 
   constructor(
     private goal: string,
-    private llmClient: LLMClient
+    private llmClient: LLMClient,
+    private context?: PlannerContext
   ) {}
 
   /**
@@ -26,7 +36,7 @@ export class Planner {
     try {
       // Build prompts
       const systemPrompt = PromptBuilder.buildSystemPrompt();
-      const userPrompt = PromptBuilder.buildUserPrompt(this.goal, observation, this.stepCount);
+      const userPrompt = PromptBuilder.buildUserPrompt(this.goal, observation, this.stepCount, this.context);
 
       // Get LLM response
       console.log('[Planner] Querying LLM for next action...');

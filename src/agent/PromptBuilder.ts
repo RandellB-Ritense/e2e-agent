@@ -72,11 +72,44 @@ You MUST respond with a single valid JSON object representing ONE action. The JS
   /**
    * Build the user prompt with the current observation and goal
    */
-  static buildUserPrompt(goal: string, observation: Observation, stepNumber: number): string {
-    return `## Goal
-${goal}
+  static buildUserPrompt(
+    goal: string,
+    observation: Observation,
+    stepNumber: number,
+    options?: {
+      successCriteria?: string[];
+      testData?: Record<string, string>;
+      notes?: string;
+    }
+  ): string {
+    let prompt = `## Goal
+${goal}`;
 
-## Current State
+    // Add success criteria if provided
+    if (options?.successCriteria && options.successCriteria.length > 0) {
+      prompt += `\n\n## Success Criteria
+The test is successful when ALL of the following are achieved:`;
+      options.successCriteria.forEach(criterion => {
+        prompt += `\n- ${criterion}`;
+      });
+    }
+
+    // Add test data suggestions if provided
+    if (options?.testData && Object.keys(options.testData).length > 0) {
+      prompt += `\n\n## Test Data to Use
+When filling forms, use this test data:`;
+      Object.entries(options.testData).forEach(([key, value]) => {
+        prompt += `\n- ${key}: ${value}`;
+      });
+    }
+
+    // Add notes if provided
+    if (options?.notes) {
+      prompt += `\n\n## Important Notes
+${options.notes}`;
+    }
+
+    prompt += `\n\n## Current State
 - Step: ${stepNumber}
 - URL: ${observation.url}
 
@@ -85,5 +118,7 @@ ${observation.domSnapshot}
 
 ## Task
 Based on the goal and current page state, determine the SINGLE next action to take. Respond with ONLY a JSON object representing the action.`;
+
+    return prompt;
   }
 }
