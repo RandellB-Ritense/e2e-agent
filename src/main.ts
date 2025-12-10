@@ -4,6 +4,7 @@ import { AgentLoop } from './agent/AgentLoop.js';
 import { AgentConfig } from './agent/ActionSchema.js';
 import { LLMFactory } from './llm/LLMFactory.js';
 import { TestLoader } from './utils/TestLoader.js';
+import { Reporter } from './utils/Reporter.js';
 
 /**
  * Main entry point for the AI E2E Agent
@@ -70,11 +71,22 @@ async function main() {
     // Create and run the agent loop
     const page = browserManager.getPage();
     const agentLoop = new AgentLoop(page, config, llmClient);
-    await agentLoop.run();
+    const report = await agentLoop.run();
+
+    // Display the test report
+    const consoleReport = Reporter.generateConsoleReport(report);
+    console.log(consoleReport);
 
     // Keep the browser open for a moment to see the final state
-    console.log('\n[Main] Waiting 3 seconds before closing...');
+    console.log('[Main] Waiting 3 seconds before closing...');
     await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    // Exit with appropriate code based on test result
+    if (report.status === 'passed') {
+      process.exitCode = 0;
+    } else {
+      process.exitCode = 1;
+    }
   } catch (error) {
     console.error('[Main] Fatal error:', error);
     process.exit(1);
