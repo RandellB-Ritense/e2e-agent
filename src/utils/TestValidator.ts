@@ -24,9 +24,10 @@ export class TestValidator {
   /**
    * Run a Playwright test spec and return the result
    * @param specPath Path to the generated .spec.ts file
+   * @param baseURL Optional base URL to use for the test
    * @returns Validation result with success status and output
    */
-  static async validateSpec(specPath: string): Promise<ValidationResult> {
+  static async validateSpec(specPath: string, baseURL?: string): Promise<ValidationResult> {
     const startTime = Date.now();
 
     try {
@@ -34,14 +35,27 @@ export class TestValidator {
       await fs.access(specPath);
 
       console.log(`[TestValidator] Running Playwright test: ${specPath}`);
+      if (baseURL) {
+        console.log(`[TestValidator] Using base URL: ${baseURL}`);
+      }
 
       // Run the Playwright test using npx
-      const command = `npx playwright test ${specPath}`;
+      // Use --config option to override baseURL if provided
+      let command = `npx playwright test ${specPath}`;
+      if (baseURL) {
+        command += ` --config=playwright.config.ts`;
+        // Note: We'll set the baseURL in the environment or update the config before running
+      }
 
       try {
         const { stdout, stderr } = await execAsync(command, {
           timeout: 120000, // 2 minute timeout
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env,
+            // Pass baseURL via environment variable if provided
+            ...(baseURL && { PLAYWRIGHT_BASE_URL: baseURL }),
+          },
         });
 
         const duration = Date.now() - startTime;

@@ -223,6 +223,8 @@ export class AgentLoop {
       status,
       goal: this.config.goal,
       startUrl: this.config.startUrl,
+      baseURL: this.config.baseURL,
+      entryPath: this.config.entryPath,
       startTime: this.startTime || endTime,
       endTime,
       durationMs,

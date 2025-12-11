@@ -13,6 +13,13 @@ export class PlaywrightGenerator {
     const imports = this.generateImports();
     const testBody = this.generateTestBody(report);
 
+    let baseURLComment = '';
+    if (report.baseURL) {
+      baseURLComment = `    // Base URL: ${report.baseURL}
+    // Set this in your playwright.config.ts: use: { baseURL: '${report.baseURL}' }
+    `;
+    }
+
     return `${imports}
 
 test.describe('${this.escapeString(report.testName)}', () => {
@@ -22,7 +29,7 @@ test.describe('${this.escapeString(report.testName)}', () => {
     // Execution date: ${report.startTime.toISOString()}
     // Status: ${report.status}
     // Duration: ${(report.durationMs / 1000).toFixed(2)}s
-
+${baseURLComment}
 ${testBody}
   });
 });
@@ -41,7 +48,7 @@ ${testBody}
    */
   private static generateTestBody(report: TestReport): string {
     const lines: string[] = [];
-    let currentUrl = report.startUrl;
+    const baseURL = report.baseURL;
 
     // Filter out finish and error actions as they're not executable
     const executableActions = report.actionHistory.filter(
@@ -54,14 +61,9 @@ ${testBody}
 
       lines.push(`    ${stepComment}`);
 
-      const code = this.generateActionCode(action, currentUrl);
+      const code = this.generateActionCode(action, baseURL);
       if (code) {
         lines.push(`    ${code}`);
-      }
-
-      // Track URL changes for navigation actions
-      if (action.action === 'navigate') {
-        currentUrl = action.target;
       }
 
       // Add blank line between steps for readability
@@ -85,10 +87,27 @@ ${testBody}
   /**
    * Generate code for a specific action
    */
-  private static generateActionCode(action: AgentAction, currentUrl: string): string {
+  private static generateActionCode(action: AgentAction, baseURL?: string): string {
     switch (action.action) {
       case 'navigate':
-        return `await page.goto('${this.escapeString(action.target)}');`;
+        // Convert to relative path if it's within the same baseURL
+        let targetPath = action.target;
+        if (baseURL) {
+          try {
+            const url = new URL(action.target);
+            const base = new URL(baseURL);
+            if (url.host === base.host && url.protocol === base.protocol) {
+              // Same domain - use relative path
+              targetPath = url.pathname + url.search + url.hash;
+              if (targetPath === '/') {
+                targetPath = '.';
+              }
+            }
+          } catch (error) {
+            // If URL parsing fails, use the original target
+          }
+        }
+        return `await page.goto('${this.escapeString(targetPath)}');`;
 
       case 'click':
         return `await page.locator('${this.escapeCssSelector(action.target)}').click();`;

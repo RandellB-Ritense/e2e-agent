@@ -25,6 +25,8 @@ export interface TestReport {
   status: TestStatus;
   goal: string;
   startUrl: string;
+  baseURL?: string;
+  entryPath?: string;
   startTime: Date;
   endTime: Date;
   durationMs: number;

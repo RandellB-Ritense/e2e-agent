@@ -128,7 +128,7 @@ async function main() {
 
       // Validate the generated spec by running it
       console.log('[Main] Validating generated Playwright test...');
-      const validationResult = await TestValidator.validateSpec(specPath);
+      const validationResult = await TestValidator.validateSpec(specPath, report.baseURL);
       const validationOutput = TestValidator.formatResult(validationResult);
       console.log(validationOutput);
 

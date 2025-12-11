@@ -94,13 +94,41 @@ export class TestLoader {
 
     // Extract required fields
     const goal = this.extractText(sections['Goal']);
-    const startUrl = this.extractText(sections['Starting URL'] || sections['Start URL'] || sections['URL']);
 
     if (!goal) {
       throw new Error('Test file must contain a "## Goal" section');
     }
-    if (!startUrl) {
-      throw new Error('Test file must contain a "## Starting URL" section');
+
+    // Extract URL configuration (new approach: Base URL + Entry Path)
+    const baseURL = this.extractText(sections['Base URL'] || sections['BaseURL']);
+    const entryPath = this.extractText(sections['Entry Path'] || sections['EntryPath']);
+
+    // Backward compatibility: also check for old "Starting URL" format
+    const legacyStartUrl = this.extractText(sections['Starting URL'] || sections['Start URL'] || sections['URL']);
+
+    // Determine startUrl and baseURL/entryPath
+    let startUrl: string;
+    let finalBaseURL: string | undefined;
+    let finalEntryPath: string | undefined;
+
+    if (baseURL && entryPath) {
+      // New format: construct startUrl from baseURL + entryPath
+      finalBaseURL = baseURL;
+      finalEntryPath = entryPath === '.' ? '/' : entryPath;
+      startUrl = baseURL + (finalEntryPath === '/' ? '' : finalEntryPath);
+    } else if (legacyStartUrl) {
+      // Old format: use legacy startUrl directly
+      startUrl = legacyStartUrl;
+      // Try to extract baseURL and entryPath from full URL
+      try {
+        const url = new URL(legacyStartUrl);
+        finalBaseURL = `${url.protocol}//${url.host}`;
+        finalEntryPath = url.pathname === '/' ? '.' : url.pathname;
+      } catch (error) {
+        // If URL parsing fails, just use the legacy URL
+      }
+    } else {
+      throw new Error('Test file must contain either "## Base URL" + "## Entry Path" or "## Starting URL"');
     }
 
     // Extract optional fields
@@ -116,6 +144,8 @@ export class TestLoader {
       name,
       goal,
       startUrl,
+      baseURL: finalBaseURL,
+      entryPath: finalEntryPath,
       maxSteps,
       autoDismissCookies,
       debug,

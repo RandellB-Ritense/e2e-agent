@@ -16,13 +16,38 @@ A clear description of what the test should accomplish. This is sent to the LLM 
 Navigate to the contact page and submit the form with test data.
 ```
 
-#### Starting URL (Required)
-The URL where the test should begin.
+#### Base URL + Entry Path (Recommended)
+The base URL and entry path for the test. This follows Playwright best practices and generates cleaner test specs.
+
+```markdown
+## Base URL
+https://example.com
+
+## Entry Path
+/login
+```
+
+Use `.` for the root path:
+```markdown
+## Entry Path
+.
+```
+
+**Why use Base URL + Entry Path?**
+- Generated Playwright tests use relative paths (`/login` instead of `https://example.com/login`)
+- Easier to run tests against different environments (dev, staging, production)
+- Follows Playwright configuration standards
+- baseURL is set in `playwright.config.ts` and can be overridden
+
+#### Starting URL (Backward Compatible)
+Alternatively, you can use a full URL directly. This is supported for backward compatibility.
 
 ```markdown
 ## Starting URL
-https://example.com
+https://example.com/login
 ```
+
+**Note:** If both formats are provided, Base URL + Entry Path takes precedence. The system will automatically extract the baseURL and path from a full URL if needed.
 
 ### Optional Sections
 

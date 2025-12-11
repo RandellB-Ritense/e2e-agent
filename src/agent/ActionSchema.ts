@@ -24,7 +24,9 @@ export interface Observation {
  */
 export interface AgentConfig {
   goal: string;
-  startUrl: string;
+  startUrl: string; // Full URL for AI execution (constructed from baseURL + entryPath or provided directly)
+  baseURL?: string; // Base URL for Playwright config (e.g., "https://example.com")
+  entryPath?: string; // Entry path for test start (e.g., "/about" or "." for root)
   maxSteps?: number;
   autoDismissCookies?: boolean;
   debug?: boolean;
