@@ -3,8 +3,8 @@
 ## Goal
 Test the navigation of the site.
 
-## Starting URL
-https://ritense.com
+## Entry Path
+.
 
 ## Max Steps
 12
