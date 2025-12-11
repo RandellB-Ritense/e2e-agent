@@ -16,7 +16,7 @@ export class PlaywrightGenerator {
     let baseURLComment = '';
     if (report.baseURL) {
       baseURLComment = `    // Base URL: ${report.baseURL}
-    // Set this in your playwright.config.ts: use: { baseURL: '${report.baseURL}' }
+    // The fixture will automatically navigate to BASE_URL from your .env file
     `;
     }
 
@@ -40,7 +40,7 @@ ${testBody}
    * Generate import statements
    */
   private static generateImports(): string {
-    return `import { test, expect } from '@playwright/test';`;
+    return `import { test, expect } from '../fixtures';`;
   }
 
   /**
