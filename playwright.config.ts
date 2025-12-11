@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 export default defineConfig({
   testDir: process.env.GENERATED_TESTS_DIR || './src/tests',
@@ -13,7 +17,7 @@ export default defineConfig({
   use: {
     // Base URL from environment variable
     baseURL: process.env.BASE_URL,
-    trace: 'on-first-retry',
+    trace: 'on',
     screenshot: 'only-on-failure',
   },
   projects: [
