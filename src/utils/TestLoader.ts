@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { AgentConfig } from '../agent/ActionSchema.js';
+import { Config } from './Config.js';
 
 /**
  * Represents a test loaded from a markdown file
@@ -99,11 +100,8 @@ export class TestLoader {
       throw new Error('Test file must contain a "## Goal" section');
     }
 
-    // Get BASE_URL from environment variable (fixed for all tests)
-    const baseURL = process.env.BASE_URL;
-    if (!baseURL) {
-      throw new Error('BASE_URL environment variable is not set. Please add it to your .env file.');
-    }
+    // Get BASE_URL from configuration (fixed for all tests)
+    const baseURL = Config.BASE_URL;
 
     // Extract Entry Path from markdown
     const entryPath = this.extractText(sections['Entry Path'] || sections['EntryPath'] || sections['Entry']);
