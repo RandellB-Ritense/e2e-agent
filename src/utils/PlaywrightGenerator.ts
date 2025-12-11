@@ -1,4 +1,4 @@
-import { TestReport, ActionRecord } from './Reporter.js';
+import { TestReport, ActionRecord } from '../types/TestReport.js';
 import { AgentAction } from '../agent/ActionSchema.js';
 
 /**

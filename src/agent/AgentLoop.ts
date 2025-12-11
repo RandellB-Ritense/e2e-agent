@@ -6,7 +6,7 @@ import { Executor } from './Executor.js';
 import { LLMClient } from '../llm/LLMClient.js';
 import { CookieHandler } from '../utils/CookieHandler.js';
 import { TestDefinition } from '../utils/TestLoader.js';
-import { TestReport, TestStatus, ActionRecord } from '../utils/Reporter.js';
+import { TestReport, TestStatus, ActionRecord } from '../types/TestReport.js';
 import { DebugLogger } from '../utils/DebugLogger.js';
 
 /**

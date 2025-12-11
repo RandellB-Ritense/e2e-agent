@@ -4,40 +4,9 @@ import { AgentLoop } from './agent/AgentLoop.js';
 import { AgentConfig } from './agent/ActionSchema.js';
 import { LLMFactory } from './llm/LLMFactory.js';
 import { TestLoader } from './utils/TestLoader.js';
-import { Reporter } from './utils/Reporter.js';
 import { PlaywrightGenerator } from './utils/PlaywrightGenerator.js';
 import { TestValidator } from './utils/TestValidator.js';
 import { Config } from './utils/Config.js';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-
-/**
- * Save HTML report to file
- */
-async function saveHTMLReport(htmlContent: string, testName: string): Promise<string> {
-  const reportsDir = Config.REPORTS_DIR;
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const safeTestName = testName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-  const fileName = `${safeTestName}-${timestamp}.html`;
-  const filePath = path.join(reportsDir, fileName);
-
-  // Create reports directory if it doesn't exist
-  try {
-    await fs.mkdir(reportsDir, { recursive: true });
-  } catch (error) {
-    console.warn('[Main] Failed to create reports directory:', error);
-  }
-
-  // Write the HTML file
-  try {
-    await fs.writeFile(filePath, htmlContent, 'utf-8');
-    return filePath;
-  } catch (error) {
-    console.error('[Main] Failed to save HTML report:', error);
-    throw error;
-  }
-}
-
 /**
  * Main entry point for the AI E2E Agent
  */
@@ -104,19 +73,6 @@ async function main() {
     const page = browserManager.getPage();
     const agentLoop = new AgentLoop(page, config, llmClient);
     const report = await agentLoop.run();
-
-    // Display the test report
-    const consoleReport = Reporter.generateConsoleReport(report);
-    console.log(consoleReport);
-
-    // Generate and save HTML report
-    try {
-      const htmlReport = Reporter.generateHTMLReport(report);
-      const htmlPath = await saveHTMLReport(htmlReport, report.testName);
-      console.log(`[Main] HTML report saved to: ${htmlPath}`);
-    } catch (error) {
-      console.warn('[Main] Failed to generate HTML report:', error);
-    }
 
     // Generate Playwright test spec from action history
     console.log('\n[Main] Generating Playwright test spec...');
