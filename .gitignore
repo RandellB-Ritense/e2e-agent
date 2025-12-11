@@ -35,3 +35,6 @@ debug-screenshots/
 
 # Test reports
 test-reports/
+
+# Generated Playwright tests
+generated-tests/

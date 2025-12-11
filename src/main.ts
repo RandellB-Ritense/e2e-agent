@@ -5,6 +5,8 @@ import { AgentConfig } from './agent/ActionSchema.js';
 import { LLMFactory } from './llm/LLMFactory.js';
 import { TestLoader } from './utils/TestLoader.js';
 import { Reporter } from './utils/Reporter.js';
+import { PlaywrightGenerator } from './utils/PlaywrightGenerator.js';
+import { TestValidator } from './utils/TestValidator.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -115,14 +117,49 @@ async function main() {
       console.warn('[Main] Failed to generate HTML report:', error);
     }
 
+    // Generate Playwright test spec from action history
+    console.log('\n[Main] Generating Playwright test spec...');
+    let validationPassed = false;
+    try {
+      const playwrightSpec = PlaywrightGenerator.generateSpec(report);
+      const specFilename = PlaywrightGenerator.generateFilename(report.testName);
+      const specPath = await TestValidator.saveSpec(playwrightSpec, specFilename);
+      console.log(`[Main] Playwright spec saved to: ${specPath}`);
+
+      // Validate the generated spec by running it
+      console.log('[Main] Validating generated Playwright test...');
+      const validationResult = await TestValidator.validateSpec(specPath);
+      const validationOutput = TestValidator.formatResult(validationResult);
+      console.log(validationOutput);
+
+      validationPassed = validationResult.success;
+
+      if (validationResult.success) {
+        console.log('[Main] ✓ Generated Playwright test validation PASSED');
+      } else {
+        console.log('[Main] ✗ Generated Playwright test validation FAILED');
+        console.log('[Main] The AI-generated test may need manual review and adjustment');
+      }
+    } catch (error) {
+      console.error('[Main] Failed to generate or validate Playwright spec:', error);
+    }
+
     // Keep the browser open for a moment to see the final state
-    console.log('[Main] Waiting 3 seconds before closing...');
+    console.log('\n[Main] Waiting 3 seconds before closing...');
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Exit with appropriate code based on test result
-    if (report.status === 'passed') {
+    // Both the AI test and validation must pass for success
+    if (report.status === 'passed' && validationPassed) {
+      console.log('\n[Main] ✓ All tests passed (AI test + Playwright validation)');
       process.exitCode = 0;
     } else {
+      if (report.status !== 'passed') {
+        console.log('\n[Main] ✗ AI test failed');
+      }
+      if (!validationPassed) {
+        console.log('[Main] ✗ Playwright validation failed');
+      }
       process.exitCode = 1;
     }
   } catch (error) {
