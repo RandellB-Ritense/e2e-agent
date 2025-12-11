@@ -123,23 +123,11 @@ export class Observer {
           }
         }
 
-        // Priority 6: For links, try href + text combination
+        // Priority 6: For links, check href uniqueness
         if (tagName === 'a') {
           const href = element.getAttribute('href');
-          const text = element.textContent?.trim();
-          if (href && text) {
-            // Try href with exact text match
-            const selector = `a[href="${escapeSelector(href)}"]:has-text("${escapeSelector(text)}")`;
-            // Since :has-text is Playwright-specific, we use a workaround
-            // Check all matching href elements for unique text
-            const hrefMatches = Array.from(document.querySelectorAll(`a[href="${escapeSelector(href)}"]`));
-            const textMatches = hrefMatches.filter(el => el.textContent?.trim() === text);
-            if (textMatches.length === 1) {
-              // Return a more complex selector
-              return `a[href="${escapeSelector(href)}"]`;  // We'll add text matching in Playwright
-            }
-          }
-          // If href alone is unique, use it
+
+          // Check if href alone is unique
           if (href) {
             const selector = `a[href="${escapeSelector(href)}"]`;
             if (isUnique(selector, element)) {
