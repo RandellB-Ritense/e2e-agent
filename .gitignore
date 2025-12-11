@@ -32,3 +32,6 @@ npm-debug.log*
 
 # Debug artifacts
 debug-screenshots/
+
+# Test reports
+test-reports/
