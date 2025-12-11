@@ -161,9 +161,15 @@ export class Observer {
         if (['button', 'a'].includes(tagName)) {
           const text = element.textContent?.trim();
           if (text && text.length > 0 && text.length < 50) {
-            // We'll use text-based selectors in Playwright later
-            // For now, mark this for text-based matching
-            return `${tagName}:text("${escapeSelector(text)}")`;
+            // Check if the text is unique for this tag type
+            const allWithSameTag = document.querySelectorAll(tagName);
+            const withSameText = Array.from(allWithSameTag).filter(
+              el => el.textContent?.trim() === text
+            );
+            if (withSameText.length === 1) {
+              // Text is unique for this tag, use text-based selector
+              return `${tagName}:text("${escapeSelector(text)}")`;
+            }
           }
         }
 
