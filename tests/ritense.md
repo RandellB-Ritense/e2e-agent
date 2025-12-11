@@ -11,7 +11,7 @@ Test the navigation of the site.
 
 ## Success Criteria
 - Locate the navigation bar.
-- Visit every link in the navigation bar from left to right.
+- Click every link in the navigation bar from left to right.
 - End on the contact page.
 
 ## Notes

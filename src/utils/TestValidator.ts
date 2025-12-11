@@ -55,7 +55,7 @@ export class TestValidator {
           env: {
             ...process.env,
             // Pass baseURL via environment variable if provided
-            ...(baseURL && { PLAYWRIGHT_BASE_URL: baseURL }),
+            ...(baseURL && { BASE_URL: baseURL }),
           },
         });
 

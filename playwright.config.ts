@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: process.env.GENERATED_TESTS_DIR || './generated-tests',
+  testDir: process.env.GENERATED_TESTS_DIR || './src/tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -12,7 +12,7 @@ export default defineConfig({
   ],
   use: {
     // Base URL from environment variable
-    baseURL: process.env.BASE_URL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

@@ -24,7 +24,7 @@ export class Config {
    * Directory for generated Playwright test specs
    */
   static get GENERATED_TESTS_DIR(): string {
-    return process.env.GENERATED_TESTS_DIR || 'generated-tests';
+    return process.env.GENERATED_TESTS_DIR || './src/tests';
   }
 
   /**
