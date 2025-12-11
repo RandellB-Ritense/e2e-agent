@@ -109,20 +109,20 @@ ${testBody}
         return `await page.goto('${this.escapeString(targetPath)}');`;
 
       case 'click':
-        return `await page.locator('${this.escapeCssSelector(action.target)}').click();`;
+        return `await ${this.generateLocator(action.target)}.click();`;
 
       case 'fill':
-        return `await page.locator('${this.escapeCssSelector(action.target)}').fill('${this.escapeString(action.value)}');`;
+        return `await ${this.generateLocator(action.target)}.fill('${this.escapeString(action.value)}');`;
 
       case 'assert':
         // Generate an expect assertion based on the value
         if (action.value.toLowerCase().includes('visible')) {
-          return `await expect(page.locator('${this.escapeCssSelector(action.target)}')).toBeVisible();`;
+          return `await expect(${this.generateLocator(action.target)}).toBeVisible();`;
         } else if (action.value.toLowerCase().includes('hidden')) {
-          return `await expect(page.locator('${this.escapeCssSelector(action.target)}')).toBeHidden();`;
+          return `await expect(${this.generateLocator(action.target)}).toBeHidden();`;
         } else {
           // Default to checking text content
-          return `await expect(page.locator('${this.escapeCssSelector(action.target)}')).toHaveText('${this.escapeString(action.value)}');`;
+          return `await expect(${this.generateLocator(action.target)}).toHaveText('${this.escapeString(action.value)}');`;
         }
 
       case 'wait':
@@ -132,7 +132,7 @@ ${testBody}
           return `await page.waitForTimeout(${waitTime});`;
         } else {
           // Wait for selector
-          return `await page.locator('${this.escapeCssSelector(action.target)}').waitFor();`;
+          return `await ${this.generateLocator(action.target)}.waitFor();`;
         }
 
       case 'finish':
@@ -143,6 +143,27 @@ ${testBody}
       default:
         return `// Unknown action: ${(action as any).action}`;
     }
+  }
+
+  /**
+   * Generate a Playwright locator from a selector string
+   * Handles both CSS selectors and text-based selectors
+   */
+  private static generateLocator(selector: string): string {
+    // Check for text-based selectors (e.g., "button:text("Click me")")
+    const textMatch = selector.match(/^(button|a):text\("(.+)"\)$/);
+    if (textMatch) {
+      const [, tagName, text] = textMatch;
+      const escapedText = this.escapeString(text);
+      if (tagName === 'button') {
+        return `page.getByRole('button', { name: '${escapedText}' })`;
+      } else if (tagName === 'a') {
+        return `page.getByRole('link', { name: '${escapedText}' })`;
+      }
+    }
+
+    // For standard CSS selectors, use locator
+    return `page.locator('${this.escapeCssSelector(selector)}')`;
   }
 
   /**

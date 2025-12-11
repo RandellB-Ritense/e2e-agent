@@ -47,8 +47,185 @@ export class Observer {
    */
   private async extractInteractiveElements(): Promise<InteractiveElement[]> {
     // Use page.evaluate to run JavaScript in the browser context
-    const serializableElements = await this.page.evaluate(() => {
-      const elements: SerializableElement[] = [];
+    // Generate selectors in the browser where we can check for uniqueness
+    const interactiveElements = await this.page.evaluate(() => {
+      const elements: Array<{
+        tagName: string;
+        text: string;
+        attributes: Record<string, string>;
+        role?: string;
+        selector: string;
+      }> = [];
+
+      // Helper function to check if a selector is unique
+      function isUnique(selector: string, targetElement: Element): boolean {
+        try {
+          const matches = document.querySelectorAll(selector);
+          return matches.length === 1 && matches[0] === targetElement;
+        } catch {
+          return false;
+        }
+      }
+
+      // Helper function to escape CSS selector values
+      function escapeSelector(str: string): string {
+        return str.replace(/["\\]/g, '\\$&');
+      }
+
+      // Helper function to generate a unique selector for an element
+      function generateUniqueSelector(element: HTMLElement): string {
+        // Priority 1: data-testid (always unique in good practice)
+        const testId = element.getAttribute('data-testid');
+        if (testId) {
+          const selector = `[data-testid="${escapeSelector(testId)}"]`;
+          if (isUnique(selector, element)) {
+            return selector;
+          }
+        }
+
+        // Priority 2: id attribute
+        const id = element.id;
+        if (id) {
+          const selector = `#${CSS.escape(id)}`;
+          if (isUnique(selector, element)) {
+            return selector;
+          }
+        }
+
+        // Priority 3: aria-label (when unique)
+        const ariaLabel = element.getAttribute('aria-label');
+        if (ariaLabel) {
+          const selector = `${element.tagName.toLowerCase()}[aria-label="${escapeSelector(ariaLabel)}"]`;
+          if (isUnique(selector, element)) {
+            return selector;
+          }
+        }
+
+        // Priority 4: name attribute for form elements
+        const name = element.getAttribute('name');
+        const tagName = element.tagName.toLowerCase();
+        if (name && ['input', 'textarea', 'select', 'button'].includes(tagName)) {
+          const selector = `${tagName}[name="${escapeSelector(name)}"]`;
+          if (isUnique(selector, element)) {
+            return selector;
+          }
+        }
+
+        // Priority 5: For inputs, try type + placeholder combination
+        if (tagName === 'input') {
+          const type = element.getAttribute('type') || 'text';
+          const placeholder = element.getAttribute('placeholder');
+          if (placeholder) {
+            const selector = `input[type="${type}"][placeholder="${escapeSelector(placeholder)}"]`;
+            if (isUnique(selector, element)) {
+              return selector;
+            }
+          }
+        }
+
+        // Priority 6: For links, try href + text combination
+        if (tagName === 'a') {
+          const href = element.getAttribute('href');
+          const text = element.textContent?.trim();
+          if (href && text) {
+            // Try href with exact text match
+            const selector = `a[href="${escapeSelector(href)}"]:has-text("${escapeSelector(text)}")`;
+            // Since :has-text is Playwright-specific, we use a workaround
+            // Check all matching href elements for unique text
+            const hrefMatches = Array.from(document.querySelectorAll(`a[href="${escapeSelector(href)}"]`));
+            const textMatches = hrefMatches.filter(el => el.textContent?.trim() === text);
+            if (textMatches.length === 1) {
+              // Return a more complex selector
+              return `a[href="${escapeSelector(href)}"]`;  // We'll add text matching in Playwright
+            }
+          }
+          // If href alone is unique, use it
+          if (href) {
+            const selector = `a[href="${escapeSelector(href)}"]`;
+            if (isUnique(selector, element)) {
+              return selector;
+            }
+          }
+        }
+
+        // Priority 7: role attribute
+        const role = element.getAttribute('role');
+        if (role) {
+          const selector = `[role="${escapeSelector(role)}"]`;
+          if (isUnique(selector, element)) {
+            return selector;
+          }
+        }
+
+        // Priority 8: Try tag + visible text (for buttons and links)
+        if (['button', 'a'].includes(tagName)) {
+          const text = element.textContent?.trim();
+          if (text && text.length > 0 && text.length < 50) {
+            // We'll use text-based selectors in Playwright later
+            // For now, mark this for text-based matching
+            return `${tagName}:text("${escapeSelector(text)}")`;
+          }
+        }
+
+        // Priority 9: Try nth-of-type with parent context
+        let parent = element.parentElement;
+        if (parent) {
+          const siblings = Array.from(parent.children).filter(
+            el => el.tagName === element.tagName
+          );
+          const index = siblings.indexOf(element);
+          if (index >= 0) {
+            let parentSelector = parent.tagName.toLowerCase();
+            const parentId = parent.id;
+            const parentClass = parent.className.split(' ')[0];
+
+            if (parentId) {
+              parentSelector = `#${CSS.escape(parentId)}`;
+            } else if (parentClass) {
+              parentSelector = `${parent.tagName.toLowerCase()}.${CSS.escape(parentClass)}`;
+            }
+
+            const selector = `${parentSelector} > ${tagName}:nth-of-type(${index + 1})`;
+            if (isUnique(selector, element)) {
+              return selector;
+            }
+          }
+        }
+
+        // Priority 10: Try tag + first class
+        const className = element.className;
+        if (className && typeof className === 'string') {
+          const firstClass = className.split(' ').filter(c => c.length > 0)[0];
+          if (firstClass) {
+            const selector = `${tagName}.${CSS.escape(firstClass)}`;
+            if (isUnique(selector, element)) {
+              return selector;
+            }
+          }
+        }
+
+        // Fallback: generate a more complex path-based selector
+        const path: string[] = [];
+        let current: Element | null = element;
+        while (current && current !== document.body && path.length < 5) {
+          const tag = current.tagName.toLowerCase();
+          const tagName = current.tagName;
+          const parent: Element | null = current.parentElement;
+          if (parent) {
+            const allSiblings: Element[] = Array.from(parent.children);
+            const siblings = allSiblings.filter(
+              (el: Element) => el.tagName === tagName
+            );
+            const index = siblings.indexOf(current);
+            path.unshift(`${tag}:nth-of-type(${index + 1})`);
+            current = parent;
+          } else {
+            path.unshift(tag);
+            current = null;
+          }
+        }
+        return path.join(' > ');
+      }
 
       // Selectors for interactive elements
       const selector = [
@@ -114,76 +291,28 @@ export class Observer {
         // Get role
         const role = element.getAttribute('role') || undefined;
 
+        // Generate unique selector
+        const uniqueSelector = generateUniqueSelector(element);
+
         elements.push({
           tagName: element.tagName.toLowerCase(),
           text,
           attributes,
           role,
+          selector: uniqueSelector,
         });
       });
 
       return elements;
     });
 
-    // Generate selectors and assign IDs
-    const interactiveElements: InteractiveElement[] = serializableElements.map(
-      (el, index) => ({
-        id: index + 1,
-        ...el,
-        selector: this.generateSelector(el),
-      })
-    );
+    // Assign IDs
+    const result: InteractiveElement[] = interactiveElements.map((el, index) => ({
+      id: index + 1,
+      ...el,
+    }));
 
-    return interactiveElements;
-  }
-
-  /**
-   * Generate a CSS selector for an element
-   * @param element The element to generate a selector for
-   * @returns A CSS selector string
-   */
-  private generateSelector(element: SerializableElement): string {
-    // Priority 1: data-testid
-    if (element.attributes['data-testid']) {
-      return `[data-testid="${element.attributes['data-testid']}"]`;
-    }
-
-    // Priority 2: id
-    if (element.attributes.id) {
-      return `#${element.attributes.id}`;
-    }
-
-    // Priority 3: name attribute for inputs
-    if (element.attributes.name && (element.tagName === 'input' || element.tagName === 'textarea' || element.tagName === 'select')) {
-      return `${element.tagName}[name="${element.attributes.name}"]`;
-    }
-
-    // Priority 4: type for inputs
-    if (element.tagName === 'input' && element.attributes.type) {
-      if (element.attributes.placeholder) {
-        return `input[type="${element.attributes.type}"][placeholder="${element.attributes.placeholder}"]`;
-      }
-      return `input[type="${element.attributes.type}"]`;
-    }
-
-    // Priority 5: href for links
-    if (element.tagName === 'a' && element.attributes.href) {
-      return `a[href="${element.attributes.href}"]`;
-    }
-
-    // Priority 6: role attribute
-    if (element.role) {
-      return `[role="${element.role}"]`;
-    }
-
-    // Priority 7: tag + class (first class only)
-    if (element.attributes.class) {
-      const firstClass = element.attributes.class.split(' ')[0];
-      return `${element.tagName}.${firstClass}`;
-    }
-
-    // Fallback: just the tag name (not ideal, but better than nothing)
-    return element.tagName;
+    return result;
   }
 
   /**
