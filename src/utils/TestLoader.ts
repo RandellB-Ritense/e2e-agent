@@ -99,36 +99,38 @@ export class TestLoader {
       throw new Error('Test file must contain a "## Goal" section');
     }
 
-    // Extract URL configuration (new approach: Base URL + Entry Path)
-    const baseURL = this.extractText(sections['Base URL'] || sections['BaseURL']);
-    const entryPath = this.extractText(sections['Entry Path'] || sections['EntryPath']);
+    // Get BASE_URL from environment variable (fixed for all tests)
+    const baseURL = process.env.BASE_URL;
+    if (!baseURL) {
+      throw new Error('BASE_URL environment variable is not set. Please add it to your .env file.');
+    }
 
-    // Backward compatibility: also check for old "Starting URL" format
+    // Extract Entry Path from markdown
+    const entryPath = this.extractText(sections['Entry Path'] || sections['EntryPath'] || sections['Entry']);
+
+    // Backward compatibility: check for old "Starting URL" format
     const legacyStartUrl = this.extractText(sections['Starting URL'] || sections['Start URL'] || sections['URL']);
 
-    // Determine startUrl and baseURL/entryPath
+    // Determine startUrl and entryPath
     let startUrl: string;
-    let finalBaseURL: string | undefined;
-    let finalEntryPath: string | undefined;
+    let finalEntryPath: string;
 
-    if (baseURL && entryPath) {
-      // New format: construct startUrl from baseURL + entryPath
-      finalBaseURL = baseURL;
+    if (entryPath) {
+      // New format: construct startUrl from BASE_URL + entryPath
       finalEntryPath = entryPath === '.' ? '/' : entryPath;
       startUrl = baseURL + (finalEntryPath === '/' ? '' : finalEntryPath);
     } else if (legacyStartUrl) {
       // Old format: use legacy startUrl directly
       startUrl = legacyStartUrl;
-      // Try to extract baseURL and entryPath from full URL
+      // Extract entryPath from full URL
       try {
         const url = new URL(legacyStartUrl);
-        finalBaseURL = `${url.protocol}//${url.host}`;
         finalEntryPath = url.pathname === '/' ? '.' : url.pathname;
       } catch (error) {
-        // If URL parsing fails, just use the legacy URL
+        finalEntryPath = '.';
       }
     } else {
-      throw new Error('Test file must contain either "## Base URL" + "## Entry Path" or "## Starting URL"');
+      throw new Error('Test file must contain an "## Entry Path" section');
     }
 
     // Extract optional fields
@@ -144,7 +146,7 @@ export class TestLoader {
       name,
       goal,
       startUrl,
-      baseURL: finalBaseURL,
+      baseURL,
       entryPath: finalEntryPath,
       maxSteps,
       autoDismissCookies,

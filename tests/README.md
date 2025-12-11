@@ -16,13 +16,10 @@ A clear description of what the test should accomplish. This is sent to the LLM 
 Navigate to the contact page and submit the form with test data.
 ```
 
-#### Base URL + Entry Path (Recommended)
-The base URL and entry path for the test. This follows Playwright best practices and generates cleaner test specs.
+#### Entry Path (Required)
+The entry path for the test, relative to the BASE_URL configured in your `.env` file.
 
 ```markdown
-## Base URL
-https://example.com
-
 ## Entry Path
 /login
 ```
@@ -33,21 +30,28 @@ Use `.` for the root path:
 .
 ```
 
-**Why use Base URL + Entry Path?**
-- Generated Playwright tests use relative paths (`/login` instead of `https://example.com/login`)
-- Easier to run tests against different environments (dev, staging, production)
-- Follows Playwright configuration standards
-- baseURL is set in `playwright.config.ts` and can be overridden
+**BASE_URL Configuration:**
+The base URL is set globally in your `.env` file and applies to all tests:
+```
+BASE_URL=https://example.com
+```
 
-#### Starting URL (Backward Compatible)
-Alternatively, you can use a full URL directly. This is supported for backward compatibility.
+**Benefits:**
+- One central URL configuration for all tests
+- Generated Playwright tests use relative paths (`/login` instead of full URLs)
+- Easy to switch environments (dev, staging, production) by changing one variable
+- Follows Playwright configuration standards
+- Automatically used by Playwright validation
+
+#### Starting URL (Legacy)
+For backward compatibility, full URLs are still supported:
 
 ```markdown
 ## Starting URL
 https://example.com/login
 ```
 
-**Note:** If both formats are provided, Base URL + Entry Path takes precedence. The system will automatically extract the baseURL and path from a full URL if needed.
+**Note:** The BASE_URL + Entry Path approach is recommended. The system will extract the entry path automatically from full URLs.
 
 ### Optional Sections
 
