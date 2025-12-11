@@ -7,6 +7,8 @@ import { DebugLogger } from '../utils/DebugLogger.js';
  * Observes the current page state and generates observations
  */
 export class Observer {
+  private lastObservedElements: InteractiveElement[] = [];
+
   constructor(private page: Page) {}
 
   /**
@@ -28,11 +30,34 @@ export class Observer {
   }
 
   /**
+   * Get element context by selector from the last observation
+   * @param selector The CSS selector to find
+   * @returns Element context or undefined if not found
+   */
+  getElementContext(selector: string): { text: string; tagName: string; attributes: Record<string, string>; role?: string } | undefined {
+    const element = this.lastObservedElements.find(el => el.selector === selector);
+    if (!element) {
+      return undefined;
+    }
+
+    return {
+      text: element.text,
+      tagName: element.tagName,
+      attributes: element.attributes,
+      role: element.role,
+    };
+  }
+
+  /**
    * Get a simplified DOM snapshot focusing on interactive elements
    * @returns A formatted string representation of interactive elements
    */
   private async getDOMSnapshot(): Promise<string> {
     const elements = await this.extractInteractiveElements();
+
+    // Store for element context retrieval
+    this.lastObservedElements = elements;
+
     const snapshot = this.formatElements(elements);
 
     // Log detailed observation info in debug mode

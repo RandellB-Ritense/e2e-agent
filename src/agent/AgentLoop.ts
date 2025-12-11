@@ -118,7 +118,7 @@ export class AgentLoop {
         // Capture "after" screenshot
         await DebugLogger.screenshot(this.page, stepNumber, 'after-action');
 
-        // Record the action
+        // Record the action with element context
         const actionRecord: ActionRecord = {
           stepNumber,
           action,
@@ -126,6 +126,21 @@ export class AgentLoop {
           url: currentUrl,
           executionTimeMs: Date.now() - actionStartTime,
         };
+
+        // Capture element context for intelligent Playwright selector generation
+        if ('target' in action && action.target) {
+          const elementContext = this.observer.getElementContext(action.target);
+          if (elementContext) {
+            actionRecord.elementContext = {
+              selector: action.target,
+              text: elementContext.text,
+              tagName: elementContext.tagName,
+              attributes: elementContext.attributes,
+              role: elementContext.role,
+            };
+          }
+        }
+
         this.actionHistory.push(actionRecord);
 
         DebugLogger.logTiming('Total step time', Date.now() - actionStartTime);

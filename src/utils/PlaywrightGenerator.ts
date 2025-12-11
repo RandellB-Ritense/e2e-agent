@@ -1,5 +1,6 @@
-import { TestReport } from '../types/TestReport.js';
+import { TestReport, ActionRecord } from '../types/TestReport.js';
 import { AgentAction } from '../agent/ActionSchema.js';
+import { SelectorOptimizer } from './SelectorOptimizer.js';
 
 /**
  * Generates Playwright test specs from test execution history
@@ -60,7 +61,7 @@ ${testBody}
 
       lines.push(`    ${stepComment}`);
 
-      const code = this.generateActionCode(action, baseURL);
+      const code = this.generateActionCode(record, baseURL);
       if (code) {
         lines.push(`    ${code}`);
       }
@@ -84,9 +85,11 @@ ${testBody}
   }
 
   /**
-   * Generate code for a specific action
+   * Generate code for a specific action using intelligent selector optimization
    */
-  private static generateActionCode(action: AgentAction, baseURL?: string): string {
+  private static generateActionCode(record: ActionRecord, baseURL?: string): string {
+    const action = record.action;
+
     switch (action.action) {
       case 'navigate':
         // Convert to relative path if it's within the same baseURL
@@ -109,20 +112,20 @@ ${testBody}
         return `await page.goto('${this.escapeString(targetPath)}');`;
 
       case 'click':
-        return `await ${this.generateLocator(action.target)}.click();`;
+        return `await ${this.getOptimizedLocator(record)}.click();`;
 
       case 'fill':
-        return `await ${this.generateLocator(action.target)}.fill('${this.escapeString(action.value)}');`;
+        return `await ${this.getOptimizedLocator(record)}.fill('${this.escapeString(action.value)}');`;
 
       case 'assert':
         // Generate an expect assertion based on the value
         if (action.value.toLowerCase().includes('visible')) {
-          return `await expect(${this.generateLocator(action.target)}).toBeVisible();`;
+          return `await expect(${this.getOptimizedLocator(record)}).toBeVisible();`;
         } else if (action.value.toLowerCase().includes('hidden')) {
-          return `await expect(${this.generateLocator(action.target)}).toBeHidden();`;
+          return `await expect(${this.getOptimizedLocator(record)}).toBeHidden();`;
         } else {
           // Default to checking text content
-          return `await expect(${this.generateLocator(action.target)}).toHaveText('${this.escapeString(action.value)}');`;
+          return `await expect(${this.getOptimizedLocator(record)}).toHaveText('${this.escapeString(action.value)}');`;
         }
 
       case 'wait':
@@ -132,7 +135,7 @@ ${testBody}
           return `await page.waitForTimeout(${waitTime});`;
         } else {
           // Wait for selector
-          return `await ${this.generateLocator(action.target)}.waitFor();`;
+          return `await ${this.getOptimizedLocator(record)}.waitFor();`;
         }
 
       case 'finish':
@@ -143,6 +146,27 @@ ${testBody}
       default:
         return `// Unknown action: ${(action as any).action}`;
     }
+  }
+
+  /**
+   * Get optimized Playwright locator using element context when available
+   * Falls back to legacy selector generation if context is missing
+   */
+  private static getOptimizedLocator(record: ActionRecord): string {
+    const action = record.action;
+
+    // Use SelectorOptimizer if we have element context
+    if (record.elementContext) {
+      return SelectorOptimizer.generatePlaywrightLocator(record.elementContext);
+    }
+
+    // Fallback to legacy selector generation for backward compatibility
+    if ('target' in action && action.target) {
+      return this.generateLocator(action.target);
+    }
+
+    // Should never reach here, but provide a safe fallback
+    return `page.locator('body')`;
   }
 
   /**
