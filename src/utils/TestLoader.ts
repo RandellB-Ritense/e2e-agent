@@ -9,6 +9,8 @@ export interface TestDefinition extends AgentConfig {
   name: string;
   description?: string;
   successCriteria?: string[];
+  autoDismissCookies?: boolean;
+  debug?: boolean;
   testData?: Record<string, string>;
   notes?: string;
 }
