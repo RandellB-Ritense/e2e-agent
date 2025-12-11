@@ -1,4 +1,4 @@
-import { TestReport, ActionRecord } from '../types/TestReport.js';
+import { TestReport } from '../types/TestReport.js';
 import { AgentAction } from '../agent/ActionSchema.js';
 
 /**
@@ -9,7 +9,6 @@ export class PlaywrightGenerator {
    * Generate a Playwright test spec from a test report
    */
   static generateSpec(report: TestReport): string {
-    const testName = this.sanitizeTestName(report.testName);
     const imports = this.generateImports();
     const testBody = this.generateTestBody(report);
 
