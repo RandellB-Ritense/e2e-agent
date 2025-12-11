@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { Config } from './Config.js';
 
 const execAsync = promisify(exec);
 
@@ -152,14 +153,14 @@ export class TestValidator {
    * @returns The full path to the saved file
    */
   static async saveSpec(specContent: string, filename: string): Promise<string> {
-    const generatedDir = 'generated-tests';
+    const generatedDir = Config.GENERATED_TESTS_DIR;
     const filePath = path.join(generatedDir, filename);
 
     // Create directory if it doesn't exist
     try {
       await fs.mkdir(generatedDir, { recursive: true });
     } catch (error) {
-      console.warn('[TestValidator] Failed to create generated-tests directory:', error);
+      console.warn(`[TestValidator] Failed to create ${generatedDir} directory:`, error);
     }
 
     // Write the spec file

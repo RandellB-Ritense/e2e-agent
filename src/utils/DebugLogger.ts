@@ -1,13 +1,14 @@
 import { Page } from 'playwright';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { Config } from './Config.js';
 
 /**
  * Handles debug logging and screenshot capture
  */
 export class DebugLogger {
   private static debugEnabled = false;
-  private static screenshotDir = 'debug-screenshots';
+  private static screenshotDir = Config.DEBUG_SCREENSHOTS_DIR;
   private static logFile?: string;
 
   /**

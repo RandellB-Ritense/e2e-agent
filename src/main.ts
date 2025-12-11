@@ -7,6 +7,7 @@ import { TestLoader } from './utils/TestLoader.js';
 import { Reporter } from './utils/Reporter.js';
 import { PlaywrightGenerator } from './utils/PlaywrightGenerator.js';
 import { TestValidator } from './utils/TestValidator.js';
+import { Config } from './utils/Config.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -14,7 +15,7 @@ import * as path from 'path';
  * Save HTML report to file
  */
 async function saveHTMLReport(htmlContent: string, testName: string): Promise<string> {
-  const reportsDir = 'test-reports';
+  const reportsDir = Config.REPORTS_DIR;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const safeTestName = testName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
   const fileName = `${safeTestName}-${timestamp}.html`;
