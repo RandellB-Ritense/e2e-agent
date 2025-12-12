@@ -111,19 +111,19 @@ npm run build
 
 ## Usage
 
-### Running Tests from Markdown Files (Recommended)
+### Running Tests from Instruction Files (Recommended)
 
-The easiest way to run tests is to create markdown test files in the `tests/` directory:
+The easiest way to run tests is to create markdown instruction files in the `instructions/` directory:
 
 ```bash
-# Run a specific test file
-npm start tests/example-navigation.md
+# Run a specific instruction file
+npm start instructions/example-navigation.md
 
 # Or use the full path
-npm start tests/contact-form-example.md
+npm start instructions/contact-form-example.md
 ```
 
-Example test file (`tests/my-test.md`):
+Example instruction file (`instructions/my-test.md`):
 ```markdown
 # My Test
 
@@ -142,7 +142,7 @@ https://example.com
 - No errors encountered
 ```
 
-See `tests/README.md` for detailed test file format documentation and more examples.
+See `instructions/README.md` for detailed instruction file format documentation and more examples.
 
 ### Running Without a Test File
 
@@ -157,12 +157,12 @@ npm start
 You can also use the framework programmatically:
 
 ```typescript
-import { TestLoader } from './utils/TestLoader.js';
+import { InstructionsLoader } from './utils/InstructionsLoader.js';
 import { LLMFactory } from './llm/LLMFactory.js';
 import { AgentLoop } from './agent/AgentLoop.js';
 
 // Load test from file
-const test = await TestLoader.loadTest('tests/my-test.md');
+const instructions = await InstructionsLoader.loadInstructions('instructions/my-test.md');
 
 // Or create config manually
 const config: AgentConfig = {
@@ -175,7 +175,7 @@ const config: AgentConfig = {
 ### Development Mode
 
 ```bash
-npm run dev tests/example-navigation.md
+npm run dev instructions/example-navigation.md
 ```
 
 ## How It Works

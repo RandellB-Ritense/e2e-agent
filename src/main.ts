@@ -3,7 +3,7 @@ import { BrowserManager } from './browser/BrowserManager.js';
 import { AgentLoop } from './agent/AgentLoop.js';
 import { AgentConfig } from './agent/ActionSchema.js';
 import { LLMFactory } from './llm/LLMFactory.js';
-import { TestLoader } from './utils/TestLoader.js';
+import { InstructionsLoader } from './utils/InstructionsLoader.js';
 import { PlaywrightGenerator } from './utils/PlaywrightGenerator.js';
 import { TestValidator } from './utils/TestValidator.js';
 import { Config } from './utils/Config.js';
@@ -16,46 +16,46 @@ async function main() {
   try {
     // Parse command line arguments
     const args = process.argv.slice(2);
-    const testFilePath = args[0];
+    const instructionsFilePath = args[0];
 
     // Create LLM client from environment variables
     console.log('[Main] Initializing LLM client...');
     const llmClient = LLMFactory.createFromEnv();
     console.log('[Main] LLM client initialized\n');
 
-    // Load test configuration
+    // Load test instructions
     let config: AgentConfig;
 
-    if (testFilePath) {
-      // Load test from markdown file
-      console.log(`[Main] Loading test from: ${testFilePath}`);
-      const test = await TestLoader.loadTest(testFilePath);
-      console.log(`[Main] Test loaded: ${test.name}\n`);
+    if (instructionsFilePath) {
+      // Load instructions from markdown file
+      console.log(`[Main] Loading instructions from: ${instructionsFilePath}`);
+      const instructions = await InstructionsLoader.loadInstructions(instructionsFilePath);
+      console.log(`[Main] Instructions loaded: ${instructions.name}\n`);
 
       // Display test information
-      if (test.description) {
-        console.log(`Description: ${test.description}`);
+      if (instructions.description) {
+        console.log(`Description: ${instructions.description}`);
       }
-      if (test.successCriteria && test.successCriteria.length > 0) {
+      if (instructions.successCriteria && instructions.successCriteria.length > 0) {
         console.log('Success Criteria:');
-        test.successCriteria.forEach(criterion => console.log(`  - ${criterion}`));
+        instructions.successCriteria.forEach(criterion => console.log(`  - ${criterion}`));
         console.log();
       }
-      if (test.testData && Object.keys(test.testData).length > 0) {
+      if (instructions.testData && Object.keys(instructions.testData).length > 0) {
         console.log('Test Data:');
-        Object.entries(test.testData).forEach(([key, value]) =>
+        Object.entries(instructions.testData).forEach(([key, value]) =>
           console.log(`  - ${key}: ${value}`)
         );
         console.log();
       }
-      if (test.notes) {
-        console.log(`Notes: ${test.notes}\n`);
+      if (instructions.notes) {
+        console.log(`Notes: ${instructions.notes}\n`);
       }
 
-      config = test;
+      config = instructions;
     } else {
       // Use default configuration
-      console.log('[Main] No test file specified, using default configuration\n');
+      console.log('[Main] No instructions file specified, using default configuration\n');
       config = {
         goal: 'Explore the page and perform basic interactions',
         startUrl: 'https://example.com',

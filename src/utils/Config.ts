@@ -14,10 +14,10 @@ export class Config {
   }
 
   /**
-   * Directory containing test markdown files
+   * Directory containing test instruction markdown files
    */
-  static get TESTS_DIR(): string {
-    return process.env.TESTS_DIR || 'tests';
+  static get INSTRUCTIONS_DIR(): string {
+    return process.env.INSTRUCTIONS_DIR || 'instructions';
   }
 
   /**
@@ -111,7 +111,7 @@ export class Config {
   static getAll(): Record<string, any> {
     return {
       BASE_URL: this.BASE_URL,
-      TESTS_DIR: this.TESTS_DIR,
+      INSTRUCTIONS_DIR: this.INSTRUCTIONS_DIR,
       GENERATED_TESTS_DIR: this.GENERATED_TESTS_DIR,
       REPORTS_DIR: this.REPORTS_DIR,
       DEBUG_SCREENSHOTS_DIR: this.DEBUG_SCREENSHOTS_DIR,

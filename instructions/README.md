@@ -1,10 +1,10 @@
-# Test Files
+# Test Instructions
 
-This directory contains test definitions in Markdown format. Each test file describes a scenario for the AI agent to execute.
+This directory contains test instruction files in Markdown format. Each instruction file describes a scenario for the AI agent to execute.
 
-## Test File Format
+## Instruction File Format
 
-Each test file should be a Markdown (.md) file with the following sections:
+Each instruction file should be a Markdown (.md) file with the following sections:
 
 ### Required Sections
 
@@ -156,18 +156,18 @@ https://example.com
 This test uses mock credentials and should not affect real user data.
 ```
 
-## Running a Test
+## Running an Instruction File
 
 ```bash
-npm start -- tests/example-navigation.md
+npm start -- instructions/example-navigation.md
 ```
 
 Or from code:
 ```typescript
-import { TestLoader } from './utils/TestLoader.js';
+import { InstructionsLoader } from './utils/InstructionsLoader.js';
 
-const test = await TestLoader.loadTest('tests/example-navigation.md');
-// Use test.goal, test.startUrl, test.maxSteps
+const instructions = await InstructionsLoader.loadInstructions('instructions/example-navigation.md');
+// Use instructions.goal, instructions.startUrl, instructions.maxSteps
 ```
 
 ## Best Practices
@@ -176,14 +176,14 @@ const test = await TestLoader.loadTest('tests/example-navigation.md');
 2. **Set Appropriate Max Steps**: Complex workflows need more steps
 3. **Include Success Criteria**: Help validate test completion
 4. **Provide Test Data**: Suggest realistic test data for form fields
-5. **Use Descriptive Names**: Name test files clearly (e.g., `login-test.md`, `checkout-flow.md`)
+5. **Use Descriptive Names**: Name instruction files clearly (e.g., `login-test.md`, `checkout-flow.md`)
 
-## Test Organization
+## Instruction File Organization
 
-Organize tests by feature or workflow:
+Organize instruction files by feature or workflow:
 
 ```
-tests/
+instructions/
   auth/
     login-test.md
     logout-test.md

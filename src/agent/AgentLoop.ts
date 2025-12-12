@@ -5,7 +5,7 @@ import { Planner, PlannerContext } from './Planner.js';
 import { Executor } from './Executor.js';
 import { LLMClient } from '../llm/LLMClient.js';
 import { CookieHandler } from '../utils/CookieHandler.js';
-import { TestDefinition } from '../utils/TestLoader.js';
+import { InstructionDefinition } from '../utils/InstructionsLoader.js';
 import { TestReport, TestStatus, ActionRecord } from '../types/TestReport.js';
 import { DebugLogger } from '../utils/DebugLogger.js';
 
@@ -24,29 +24,29 @@ export class AgentLoop {
   constructor(private page: Page, private config: AgentConfig, llmClient: LLMClient) {
     this.observer = new Observer(page);
 
-    // Extract additional context if config is a TestDefinition
+    // Extract additional context if config is an InstructionDefinition
     const plannerContext: PlannerContext | undefined = this.extractPlannerContext(config);
 
     this.planner = new Planner(config.goal, llmClient, plannerContext);
     this.executor = new Executor(page);
     this.maxSteps = config.maxSteps ?? 30;
 
-    // Set test name from TestDefinition or use a default
-    const testDef = config as TestDefinition;
-    this.testName = testDef.name || 'Unnamed Test';
+    // Set test name from InstructionDefinition or use a default
+    const instructions = config as InstructionDefinition;
+    this.testName = instructions.name || 'Unnamed Test';
   }
 
   /**
-   * Extract planner context from config if it's a TestDefinition
+   * Extract planner context from config if it's an InstructionDefinition
    */
   private extractPlannerContext(config: AgentConfig): PlannerContext | undefined {
-    const testDef = config as TestDefinition;
+    const instructions = config as InstructionDefinition;
 
-    if (testDef.successCriteria || testDef.testData || testDef.notes) {
+    if (instructions.successCriteria || instructions.testData || instructions.notes) {
       return {
-        successCriteria: testDef.successCriteria,
-        testData: testDef.testData,
-        notes: testDef.notes,
+        successCriteria: instructions.successCriteria,
+        testData: instructions.testData,
+        notes: instructions.notes,
       };
     }
 
@@ -230,8 +230,8 @@ export class AgentLoop {
     }
 
     // Extract success criteria from config
-    const testDef = this.config as TestDefinition;
-    const successCriteria = testDef.successCriteria;
+    const instructions = this.config as InstructionDefinition;
+    const successCriteria = instructions.successCriteria;
 
     return {
       testName: this.testName,
