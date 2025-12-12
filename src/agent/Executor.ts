@@ -16,6 +16,7 @@ export interface ExecutorConfig {
  */
 export class Executor {
   private config: Required<ExecutorConfig>;
+  private alternativeSelectorsMap: Map<string, string[]> = new Map();
 
   constructor(
     private page: Page,
@@ -26,6 +27,15 @@ export class Executor {
       retries: config.retries ?? 2,
       waitAfterAction: config.waitAfterAction ?? 500,
     };
+  }
+
+  /**
+   * Set alternative selectors for a given primary selector
+   * @param primarySelector The primary selector
+   * @param alternatives Array of alternative selectors
+   */
+  setAlternativeSelectors(primarySelector: string, alternatives: string[]): void {
+    this.alternativeSelectorsMap.set(primarySelector, alternatives);
   }
 
   /**
@@ -82,17 +92,58 @@ export class Executor {
   }
 
   /**
+   * Try to find a working selector from the list of alternatives
+   * @param primarySelector The primary selector to try first
+   * @param operation The operation to perform with the working selector
+   * @returns The selector that worked
+   */
+  private async trySelectorsWithFallback<T>(
+    primarySelector: string,
+    operation: (selector: string) => Promise<T>
+  ): Promise<T> {
+    const selectors = [primarySelector];
+    const alternatives = this.alternativeSelectorsMap.get(primarySelector);
+    if (alternatives && alternatives.length > 0) {
+      selectors.push(...alternatives);
+    }
+
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < selectors.length; i++) {
+      const selector = selectors[i];
+      try {
+        console.log(`[Executor]   Trying selector ${i + 1}/${selectors.length}: ${selector}`);
+        const result = await operation(selector);
+        if (i > 0) {
+          console.log(`[Executor]   ✓ Fallback selector worked (priority ${i + 1})`);
+        }
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        if (i < selectors.length - 1) {
+          console.log(`[Executor]   ✗ Selector failed, trying next alternative...`);
+        }
+      }
+    }
+
+    // All selectors failed
+    throw lastError || new Error('All selectors failed');
+  }
+
+  /**
    * Execute a click action
    * @param selector The CSS selector to click
    */
   private async executeClick(selector: string): Promise<void> {
     console.log(`[Executor]   Clicking: ${selector}`);
-    await this.retryOperation(async () => {
-      await this.page.waitForSelector(selector, {
-        timeout: this.config.timeout,
-        state: 'visible',
+    await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+      await this.retryOperation(async () => {
+        await this.page.waitForSelector(currentSelector, {
+          timeout: this.config.timeout,
+          state: 'visible',
+        });
+        await this.page.click(currentSelector, { timeout: this.config.timeout });
       });
-      await this.page.click(selector, { timeout: this.config.timeout });
     });
   }
 
@@ -103,15 +154,17 @@ export class Executor {
    */
   private async executeFill(selector: string, value: string): Promise<void> {
     console.log(`[Executor]   Filling ${selector} with: "${value}"`);
-    await this.retryOperation(async () => {
-      await this.page.waitForSelector(selector, {
-        timeout: this.config.timeout,
-        state: 'visible',
+    await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+      await this.retryOperation(async () => {
+        await this.page.waitForSelector(currentSelector, {
+          timeout: this.config.timeout,
+          state: 'visible',
+        });
+        // Clear existing value first
+        await this.page.fill(currentSelector, '', { timeout: this.config.timeout });
+        // Then fill with new value
+        await this.page.fill(currentSelector, value, { timeout: this.config.timeout });
       });
-      // Clear existing value first
-      await this.page.fill(selector, '', { timeout: this.config.timeout });
-      // Then fill with new value
-      await this.page.fill(selector, value, { timeout: this.config.timeout });
     });
   }
 
@@ -149,37 +202,39 @@ export class Executor {
   private async executeAssert(selector: string, expectedValue: string): Promise<void> {
     console.log(`[Executor]   Asserting ${selector} contains: "${expectedValue}"`);
 
-    await this.retryOperation(async () => {
-      await this.page.waitForSelector(selector, {
-        timeout: this.config.timeout,
-        state: 'visible',
+    await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+      await this.retryOperation(async () => {
+        await this.page.waitForSelector(currentSelector, {
+          timeout: this.config.timeout,
+          state: 'visible',
+        });
+
+        // Get the element
+        const element = await this.page.locator(currentSelector).first();
+
+        // Try to get text content first
+        const textContent = await element.textContent();
+        const trimmedText = textContent?.trim() || '';
+
+        // For input elements, also check the value
+        const tagName = await element.evaluate((el) => el.tagName.toLowerCase());
+        if (tagName === 'input' || tagName === 'textarea') {
+          const inputValue = await element.inputValue();
+          if (inputValue.includes(expectedValue) || trimmedText.includes(expectedValue)) {
+            console.log(`[Executor]   ✓ Assertion passed`);
+            return;
+          }
+        } else {
+          if (trimmedText.includes(expectedValue)) {
+            console.log(`[Executor]   ✓ Assertion passed`);
+            return;
+          }
+        }
+
+        throw new Error(
+          `Assertion failed: expected "${expectedValue}" but found "${trimmedText}"`
+        );
       });
-
-      // Get the element
-      const element = await this.page.locator(selector).first();
-
-      // Try to get text content first
-      const textContent = await element.textContent();
-      const trimmedText = textContent?.trim() || '';
-
-      // For input elements, also check the value
-      const tagName = await element.evaluate((el) => el.tagName.toLowerCase());
-      if (tagName === 'input' || tagName === 'textarea') {
-        const inputValue = await element.inputValue();
-        if (inputValue.includes(expectedValue) || trimmedText.includes(expectedValue)) {
-          console.log(`[Executor]   ✓ Assertion passed`);
-          return;
-        }
-      } else {
-        if (trimmedText.includes(expectedValue)) {
-          console.log(`[Executor]   ✓ Assertion passed`);
-          return;
-        }
-      }
-
-      throw new Error(
-        `Assertion failed: expected "${expectedValue}" but found "${trimmedText}"`
-      );
     });
   }
 
@@ -199,10 +254,12 @@ export class Executor {
     } else {
       // Assume it's a selector
       console.log(`[Executor]   Waiting for selector: ${target}`);
-      await this.retryOperation(async () => {
-        await this.page.waitForSelector(target, {
-          timeout: this.config.timeout,
-          state: 'visible',
+      await this.trySelectorsWithFallback(target, async (currentSelector) => {
+        await this.retryOperation(async () => {
+          await this.page.waitForSelector(currentSelector, {
+            timeout: this.config.timeout,
+            state: 'visible',
+          });
         });
       });
     }

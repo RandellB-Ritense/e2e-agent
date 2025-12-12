@@ -110,7 +110,15 @@ export class AgentLoop {
         const action = await this.planner.plan(observation);
         DebugLogger.logTiming('Planning', Date.now() - planStart);
 
-        // 3. Execute the action
+        // 3. Set up alternative selectors for this action if it has a target
+        if ('target' in action && action.target) {
+          const alternatives = this.observer.getAlternativeSelectors(action.target);
+          if (alternatives && alternatives.length > 0) {
+            this.executor.setAlternativeSelectors(action.target, alternatives);
+          }
+        }
+
+        // 4. Execute the action
         const executeStart = Date.now();
         await this.executor.execute(action);
         DebugLogger.logTiming('Execution', Date.now() - executeStart);
@@ -145,7 +153,7 @@ export class AgentLoop {
 
         DebugLogger.logTiming('Total step time', Date.now() - actionStartTime);
 
-        // 4. Check if we should continue
+        // 5. Check if we should continue
         if (action.action === 'finish' || action.action === 'error') {
           shouldContinue = false;
           completionReason = action.reason;

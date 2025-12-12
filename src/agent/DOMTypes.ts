@@ -5,6 +5,7 @@ export interface InteractiveElement {
   id: number;
   tagName: string;
   selector: string;
+  alternativeSelectors?: string[]; // Fallback selectors from priority list
   text: string;
   attributes: Record<string, string>;
   role?: string;

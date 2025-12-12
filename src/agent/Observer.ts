@@ -49,6 +49,16 @@ export class Observer {
   }
 
   /**
+   * Get alternative selectors for a given primary selector
+   * @param selector The primary CSS selector
+   * @returns Array of alternative selectors, or undefined if not found
+   */
+  getAlternativeSelectors(selector: string): string[] | undefined {
+    const element = this.lastObservedElements.find(el => el.selector === selector);
+    return element?.alternativeSelectors;
+  }
+
+  /**
    * Get a simplified DOM snapshot focusing on interactive elements
    * @returns A formatted string representation of interactive elements
    */
@@ -80,6 +90,7 @@ export class Observer {
         attributes: Record<string, string>;
         role?: string;
         selector: string;
+        alternativeSelectors?: string[];
       }> = [];
 
       // Helper function to check if a selector is unique
@@ -97,14 +108,18 @@ export class Observer {
         return str.replace(/["\\]/g, '\\$&');
       }
 
-      // Helper function to generate a unique selector for an element
-      function generateUniqueSelector(element: HTMLElement): string {
+      // Helper function to generate ALL unique selectors for an element
+      // Returns array with primary selector first, then alternatives
+      function generateAllUniqueSelectors(element: HTMLElement): string[] {
+        const selectors: string[] = [];
+        const tagName = element.tagName.toLowerCase();
+
         // Priority 1: data-testid (always unique in good practice)
         const testId = element.getAttribute('data-testid');
         if (testId) {
           const selector = `[data-testid="${escapeSelector(testId)}"]`;
           if (isUnique(selector, element)) {
-            return selector;
+            selectors.push(selector);
           }
         }
 
@@ -113,26 +128,25 @@ export class Observer {
         if (id) {
           const selector = `#${CSS.escape(id)}`;
           if (isUnique(selector, element)) {
-            return selector;
+            selectors.push(selector);
           }
         }
 
         // Priority 3: aria-label (when unique)
         const ariaLabel = element.getAttribute('aria-label');
         if (ariaLabel) {
-          const selector = `${element.tagName.toLowerCase()}[aria-label="${escapeSelector(ariaLabel)}"]`;
+          const selector = `${tagName}[aria-label="${escapeSelector(ariaLabel)}"]`;
           if (isUnique(selector, element)) {
-            return selector;
+            selectors.push(selector);
           }
         }
 
         // Priority 4: name attribute for form elements
         const name = element.getAttribute('name');
-        const tagName = element.tagName.toLowerCase();
         if (name && ['input', 'textarea', 'select', 'button'].includes(tagName)) {
           const selector = `${tagName}[name="${escapeSelector(name)}"]`;
           if (isUnique(selector, element)) {
-            return selector;
+            selectors.push(selector);
           }
         }
 
@@ -143,7 +157,7 @@ export class Observer {
           if (placeholder) {
             const selector = `input[type="${type}"][placeholder="${escapeSelector(placeholder)}"]`;
             if (isUnique(selector, element)) {
-              return selector;
+              selectors.push(selector);
             }
           }
         }
@@ -151,12 +165,10 @@ export class Observer {
         // Priority 6: For links, check href uniqueness
         if (tagName === 'a') {
           const href = element.getAttribute('href');
-
-          // Check if href alone is unique
           if (href) {
             const selector = `a[href="${escapeSelector(href)}"]`;
             if (isUnique(selector, element)) {
-              return selector;
+              selectors.push(selector);
             }
           }
         }
@@ -166,7 +178,7 @@ export class Observer {
         if (role) {
           const selector = `[role="${escapeSelector(role)}"]`;
           if (isUnique(selector, element)) {
-            return selector;
+            selectors.push(selector);
           }
         }
 
@@ -174,20 +186,18 @@ export class Observer {
         if (['button', 'a'].includes(tagName)) {
           const text = element.textContent?.trim();
           if (text && text.length > 0 && text.length < 50) {
-            // Check if the text is unique for this tag type
             const allWithSameTag = document.querySelectorAll(tagName);
             const withSameText = Array.from(allWithSameTag).filter(
               el => el.textContent?.trim() === text
             );
             if (withSameText.length === 1) {
-              // Text is unique for this tag, use text-based selector
-              return `${tagName}:text("${escapeSelector(text)}")`;
+              selectors.push(`${tagName}:text("${escapeSelector(text)}")`);
             }
           }
         }
 
         // Priority 9: Try nth-of-type with parent context
-        let parent = element.parentElement;
+        const parent = element.parentElement;
         if (parent) {
           const siblings = Array.from(parent.children).filter(
             el => el.tagName === element.tagName
@@ -206,7 +216,7 @@ export class Observer {
 
             const selector = `${parentSelector} > ${tagName}:nth-of-type(${index + 1})`;
             if (isUnique(selector, element)) {
-              return selector;
+              selectors.push(selector);
             }
           }
         }
@@ -218,32 +228,41 @@ export class Observer {
           if (firstClass) {
             const selector = `${tagName}.${CSS.escape(firstClass)}`;
             if (isUnique(selector, element)) {
-              return selector;
+              selectors.push(selector);
             }
           }
         }
 
-        // Fallback: generate a more complex path-based selector
+        // Fallback: generate a more complex path-based selector (always added)
         const path: string[] = [];
         let current: Element | null = element;
         while (current && current !== document.body && path.length < 5) {
           const tag = current.tagName.toLowerCase();
-          const tagName = current.tagName;
-          const parent: Element | null = current.parentElement;
-          if (parent) {
-            const allSiblings: Element[] = Array.from(parent.children);
+          const currentTagName = current.tagName;
+          const currentParent: Element | null = current.parentElement;
+          if (currentParent) {
+            const allSiblings: Element[] = Array.from(currentParent.children);
             const siblings = allSiblings.filter(
-              (el: Element) => el.tagName === tagName
+              (el: Element) => el.tagName === currentTagName
             );
             const index = siblings.indexOf(current);
             path.unshift(`${tag}:nth-of-type(${index + 1})`);
-            current = parent;
+            current = currentParent;
           } else {
             path.unshift(tag);
             current = null;
           }
         }
-        return path.join(' > ');
+        const pathSelector = path.join(' > ');
+
+        // Only add path selector if we don't have any other selectors
+        if (selectors.length === 0) {
+          selectors.push(pathSelector);
+        } else if (!selectors.includes(pathSelector)) {
+          selectors.push(pathSelector);
+        }
+
+        return selectors;
       }
 
       // Selectors for interactive elements
@@ -310,15 +329,18 @@ export class Observer {
         // Get role
         const role = element.getAttribute('role') || undefined;
 
-        // Generate unique selector
-        const uniqueSelector = generateUniqueSelector(element);
+        // Generate all unique selectors (primary + alternatives)
+        const allSelectors = generateAllUniqueSelectors(element);
+        const primarySelector = allSelectors[0]; // Best selector
+        const alternativeSelectors = allSelectors.slice(1); // Fallback selectors
 
         elements.push({
           tagName: element.tagName.toLowerCase(),
           text,
           attributes,
           role,
-          selector: uniqueSelector,
+          selector: primarySelector,
+          alternativeSelectors: alternativeSelectors.length > 0 ? alternativeSelectors : undefined,
         });
       });
 
