@@ -115,9 +115,10 @@ export class Planner {
           return { action: 'navigate', target: json.target, reason: json.reason };
 
         case 'assert':
-          if (!json.target || !json.value || !json.reason) {
+          if (!json.target || json.value === undefined || json.value === null || !json.reason) {
             throw new Error('assert action requires target, value, and reason');
           }
+          // Allow empty string for "not-present" assertions
           return { action: 'assert', target: json.target, value: json.value, reason: json.reason };
 
         case 'wait':

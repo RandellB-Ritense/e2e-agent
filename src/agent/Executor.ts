@@ -197,11 +197,59 @@ export class Executor {
   /**
    * Execute an assert action
    * @param selector The CSS selector to check
-   * @param expectedValue The expected value or text
+   * @param expectedValue The expected value or text. Special values:
+   *   - "" (empty string) or "not-present": asserts element is not visible/present
+   *   - "not-visible": asserts element exists but is not visible
+   *   - "visible": asserts element is visible
+   *   - any other string: asserts element contains that text/value
    */
   private async executeAssert(selector: string, expectedValue: string): Promise<void> {
-    console.log(`[Executor]   Asserting ${selector} contains: "${expectedValue}"`);
+    // Handle special cases for element visibility/absence
+    if (expectedValue === '' || expectedValue === 'not-present') {
+      console.log(`[Executor]   Asserting ${selector} is not present/visible`);
+      await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+        await this.retryOperation(async () => {
+          // Check if element is NOT visible
+          const isVisible = await this.page.locator(currentSelector).isVisible().catch(() => false);
+          if (isVisible) {
+            throw new Error(`Assertion failed: element "${currentSelector}" should not be visible but it is`);
+          }
+          console.log(`[Executor]   ✓ Assertion passed: element is not visible`);
+        });
+      });
+      return;
+    }
 
+    if (expectedValue === 'not-visible') {
+      console.log(`[Executor]   Asserting ${selector} is not visible`);
+      await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+        await this.retryOperation(async () => {
+          const isVisible = await this.page.locator(currentSelector).isVisible().catch(() => false);
+          if (isVisible) {
+            throw new Error(`Assertion failed: element "${currentSelector}" should not be visible but it is`);
+          }
+          console.log(`[Executor]   ✓ Assertion passed: element is not visible`);
+        });
+      });
+      return;
+    }
+
+    if (expectedValue === 'visible') {
+      console.log(`[Executor]   Asserting ${selector} is visible`);
+      await this.trySelectorsWithFallback(selector, async (currentSelector) => {
+        await this.retryOperation(async () => {
+          await this.page.waitForSelector(currentSelector, {
+            timeout: this.config.timeout,
+            state: 'visible',
+          });
+          console.log(`[Executor]   ✓ Assertion passed: element is visible`);
+        });
+      });
+      return;
+    }
+
+    // Default behavior: check text content
+    console.log(`[Executor]   Asserting ${selector} contains: "${expectedValue}"`);
     await this.trySelectorsWithFallback(selector, async (currentSelector) => {
       await this.retryOperation(async () => {
         await this.page.waitForSelector(currentSelector, {

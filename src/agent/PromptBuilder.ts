@@ -27,9 +27,13 @@ You can perform the following actions:
    - target: The URL to navigate to (absolute or relative)
    - reason: Why you're navigating here
 
-4. **assert** - Assert that an element contains expected text
+4. **assert** - Assert element state or content
    - target: CSS selector of the element
-   - value: The expected text (substring match)
+   - value: What to assert:
+     * "" (empty string) or "not-present": element should NOT be visible/present
+     * "not-visible": element should exist but NOT be visible
+     * "visible": element should be visible
+     * Any other text: element should contain that text (substring match)
    - reason: What you're verifying
 
 5. **wait** - Wait for a condition
@@ -51,7 +55,9 @@ You MUST respond with a single valid JSON object representing ONE action. The JS
 {"action": "click", "target": "button.submit", "reason": "Submit the form"}
 {"action": "fill", "target": "input[name='email']", "value": "user@example.com", "reason": "Enter email"}
 {"action": "navigate", "target": "/contact", "reason": "Go to contact page"}
-{"action": "assert", "target": ".success-message", "value": "Success", "reason": "Verify submission"}
+{"action": "assert", "target": ".success-message", "value": "Success", "reason": "Verify submission succeeded"}
+{"action": "assert", "target": ".modal", "value": "", "reason": "Verify modal is closed"}
+{"action": "assert", "target": ".loading", "value": "not-visible", "reason": "Verify loading spinner is hidden"}
 {"action": "wait", "target": "time", "value": "2000", "reason": "Wait for animation"}
 {"action": "finish", "reason": "Goal completed successfully"}
 {"action": "error", "reason": "Cannot find the required element"}
