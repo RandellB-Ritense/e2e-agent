@@ -158,6 +158,41 @@ export class Observer {
         return null;
       }
 
+      // Helper function to check if element looks like a navigation item
+      function looksLikeNavigationItem(element: HTMLElement): boolean {
+        const tagName = element.tagName.toLowerCase();
+
+        // Check if it's a link or button with text
+        if (tagName === 'a' || tagName === 'button') {
+          const text = element.textContent?.trim() || '';
+          if (text.length > 0) {
+            // Check if it's inside a nav, menu, or sidebar container
+            let parent: Element | null = element.parentElement;
+            while (parent && parent !== document.body) {
+              const parentTag = parent.tagName.toLowerCase();
+              const parentClass = parent.className?.toLowerCase() || '';
+              const parentRole = parent.getAttribute('role')?.toLowerCase() || '';
+
+              if (
+                parentTag === 'nav' ||
+                parentRole === 'navigation' ||
+                parentRole === 'menu' ||
+                parentRole === 'menubar' ||
+                parentClass.includes('nav') ||
+                parentClass.includes('menu') ||
+                parentClass.includes('sidebar') ||
+                parentClass.includes('drawer')
+              ) {
+                return true;
+              }
+              parent = parent.parentElement;
+            }
+          }
+        }
+
+        return false;
+      }
+
       // Helper function to check if a selector is unique
       function isUnique(selector: string, targetElement: Element): boolean {
         try {
@@ -364,8 +399,9 @@ export class Observer {
         // Check if hidden element is inside an expandable container
         const expandableContainer = isHidden ? isInsideExpandableContainer(element) : null;
 
-        // Skip hidden elements unless they're inside an expandable container
-        if (isHidden && !expandableContainer) {
+        // Skip hidden elements unless they're inside an expandable container OR look like navigation items
+        const isNavItem = isHidden ? looksLikeNavigationItem(element) : false;
+        if (isHidden && !expandableContainer && !isNavItem) {
           return;
         }
 
@@ -420,13 +456,17 @@ export class Observer {
           });
         }
 
-        // Determine expand trigger if this element is hidden in an expandable container
+        // Determine expand trigger if this element is hidden
         let expandTrigger: string | undefined = undefined;
-        if (isHidden && expandableContainer) {
-          const triggerInfo = expandableMap.get(expandableContainer);
-          if (triggerInfo) {
-            // Try to find the trigger element and get its selector
-            expandTrigger = triggerInfo.triggerText; // Use text as placeholder, will be refined
+        if (isHidden) {
+          if (expandableContainer) {
+            const triggerInfo = expandableMap.get(expandableContainer);
+            if (triggerInfo) {
+              expandTrigger = triggerInfo.triggerText;
+            }
+          } else if (isNavItem) {
+            // We know it's a nav item but couldn't detect the exact trigger
+            expandTrigger = 'navigation menu toggle';
           }
         }
 
