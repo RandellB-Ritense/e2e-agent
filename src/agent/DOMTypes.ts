@@ -9,6 +9,8 @@ export interface InteractiveElement {
   text: string;
   attributes: Record<string, string>;
   role?: string;
+  isHidden?: boolean; // Element is currently hidden but may be revealed
+  expandTrigger?: string; // Selector of the element that can reveal this hidden element
 }
 
 /**

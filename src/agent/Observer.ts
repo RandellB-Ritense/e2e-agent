@@ -91,7 +91,72 @@ export class Observer {
         role?: string;
         selector: string;
         alternativeSelectors?: string[];
+        isHidden?: boolean;
+        expandTrigger?: string;
       }> = [];
+
+      // First pass: Find all expandable triggers and their containers
+      const expandableMap = new Map<Element, { triggerSelector: string, triggerText: string }>();
+
+      // Look for common expandable trigger patterns
+      const expandTriggers = document.querySelectorAll([
+        '[aria-expanded]',
+        '[aria-controls]',
+        'button[data-toggle]',
+        '.hamburger',
+        '.menu-toggle',
+        '.nav-toggle',
+        '[role="button"][aria-haspopup]'
+      ].join(', '));
+
+      expandTriggers.forEach((trigger) => {
+        const triggerElement = trigger as HTMLElement;
+
+        // Get the container this trigger controls
+        const ariaControls = triggerElement.getAttribute('aria-controls');
+        let container: Element | null = null;
+
+        if (ariaControls) {
+          container = document.getElementById(ariaControls);
+        }
+
+        // If no aria-controls, try to find the container by common patterns
+        if (!container) {
+          // Check next sibling
+          container = triggerElement.nextElementSibling;
+
+          // Check parent's next sibling (for wrapped triggers)
+          if (!container && triggerElement.parentElement) {
+            container = triggerElement.parentElement.nextElementSibling;
+          }
+
+          // Check for data-target attribute
+          const dataTarget = triggerElement.getAttribute('data-target');
+          if (dataTarget && !container) {
+            container = document.querySelector(dataTarget);
+          }
+        }
+
+        if (container) {
+          // Store the container and its trigger info
+          expandableMap.set(container, {
+            triggerSelector: '', // Will be set later after we generate selectors
+            triggerText: triggerElement.textContent?.trim() || triggerElement.getAttribute('aria-label') || 'toggle'
+          });
+        }
+      });
+
+      // Helper function to check if an element is inside an expandable container
+      function isInsideExpandableContainer(element: Element): Element | null {
+        let current: Element | null = element;
+        while (current && current !== document.body) {
+          if (expandableMap.has(current)) {
+            return current;
+          }
+          current = current.parentElement;
+        }
+        return null;
+      }
 
       // Helper function to check if a selector is unique
       function isUnique(selector: string, targetElement: Element): boolean {
@@ -282,22 +347,31 @@ export class Observer {
 
       const nodes = document.querySelectorAll(selector);
 
+      // Track trigger elements and their selectors
+      const triggerElements = new Map<HTMLElement, string>();
+
       nodes.forEach((node) => {
         const element = node as HTMLElement;
 
-        // Skip hidden elements
+        // Check if element is hidden
         const style = window.getComputedStyle(element);
-        if (
+        const isHidden = (
           style.display === 'none' ||
           style.visibility === 'hidden' ||
           style.opacity === '0'
-        ) {
+        );
+
+        // Check if hidden element is inside an expandable container
+        const expandableContainer = isHidden ? isInsideExpandableContainer(element) : null;
+
+        // Skip hidden elements unless they're inside an expandable container
+        if (isHidden && !expandableContainer) {
           return;
         }
 
-        // Skip elements outside viewport (optional - may want to keep these)
+        // Skip elements outside viewport (unless they're hidden in expandable)
         const rect = element.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) {
+        if (rect.width === 0 || rect.height === 0 && !isHidden) {
           return;
         }
 
@@ -334,6 +408,28 @@ export class Observer {
         const primarySelector = allSelectors[0]; // Best selector
         const alternativeSelectors = allSelectors.slice(1); // Fallback selectors
 
+        // Track trigger elements so we can link them later
+        if (expandableMap.size > 0) {
+          expandableMap.forEach((triggerInfo, container) => {
+            if (container.contains(element) || container === element) {
+              // This is a trigger element, store its selector
+              if (!triggerElements.has(element)) {
+                triggerElements.set(element, primarySelector);
+              }
+            }
+          });
+        }
+
+        // Determine expand trigger if this element is hidden in an expandable container
+        let expandTrigger: string | undefined = undefined;
+        if (isHidden && expandableContainer) {
+          const triggerInfo = expandableMap.get(expandableContainer);
+          if (triggerInfo) {
+            // Try to find the trigger element and get its selector
+            expandTrigger = triggerInfo.triggerText; // Use text as placeholder, will be refined
+          }
+        }
+
         elements.push({
           tagName: element.tagName.toLowerCase(),
           text,
@@ -341,6 +437,8 @@ export class Observer {
           role,
           selector: primarySelector,
           alternativeSelectors: alternativeSelectors.length > 0 ? alternativeSelectors : undefined,
+          isHidden: isHidden ? true : undefined,
+          expandTrigger: expandTrigger,
         });
       });
 
@@ -373,10 +471,16 @@ export class Observer {
       // Element header with ID and type
       const elementType = this.getElementType(el);
       const displayText = el.text ? ` "${el.text}"` : '';
-      lines.push(`[${el.id}] ${elementType}${displayText}`);
+      const hiddenIndicator = el.isHidden ? ' [HIDDEN - needs to be revealed]' : '';
+      lines.push(`[${el.id}] ${elementType}${displayText}${hiddenIndicator}`);
 
       // Selector
       lines.push(`    selector: ${el.selector}`);
+
+      // Show expand trigger if element is hidden
+      if (el.isHidden && el.expandTrigger) {
+        lines.push(`    ⚠️  Currently hidden. Click "${el.expandTrigger}" to reveal this element first.`);
+      }
 
       // Additional relevant attributes
       if (el.attributes.type) {
