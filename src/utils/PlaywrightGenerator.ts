@@ -119,13 +119,15 @@ ${testBody}
 
       case 'assert':
         // Generate an expect assertion based on the value
-        if (action.value.toLowerCase().includes('visible')) {
+        if (action.value === '' || action.value === 'not-present' || action.value === 'not-visible') {
+          // Element should NOT be visible
+          return `await expect(${this.getOptimizedLocator(record)}).not.toBeVisible();`;
+        } else if (action.value === 'visible') {
+          // Element should be visible
           return `await expect(${this.getOptimizedLocator(record)}).toBeVisible();`;
-        } else if (action.value.toLowerCase().includes('hidden')) {
-          return `await expect(${this.getOptimizedLocator(record)}).toBeHidden();`;
         } else {
-          // Default to checking text content
-          return `await expect(${this.getOptimizedLocator(record)}).toHaveText('${this.escapeString(action.value)}');`;
+          // Default to checking text content (substring match, like the LLM does)
+          return `await expect(${this.getOptimizedLocator(record)}).toContainText('${this.escapeString(action.value)}');`;
         }
 
       case 'wait':
@@ -162,11 +164,13 @@ ${testBody}
 
     // Fallback to legacy selector generation for backward compatibility
     if ('target' in action && action.target) {
+      console.warn(`[PlaywrightGenerator] Missing element context for ${action.action}, using selector: ${action.target}`);
       return this.generateLocator(action.target);
     }
 
-    // Should never reach here, but provide a safe fallback
-    return `page.locator('body')`;
+    // Should never reach here - log error if it does
+    console.error(`[PlaywrightGenerator] No selector available for action: ${action.action}`);
+    return `page.locator('body') /* WARNING: No proper selector available */`;
   }
 
   /**
