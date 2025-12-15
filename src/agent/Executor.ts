@@ -293,7 +293,12 @@ export class Executor {
    */
   private async executeWait(target: string, value?: string): Promise<void> {
     if (target === 'time' || target === 'delay') {
-      const ms = value ? parseInt(value, 10) : 1000;
+      const requestedMs = value ? parseInt(value, 10) : 1000;
+      // Cap wait time at 1000ms to prevent LLM from getting stuck in long waits
+      const ms = Math.min(requestedMs, 1000);
+      if (requestedMs > 1000) {
+        console.log(`[Executor]   LLM requested ${requestedMs}ms wait, capping at ${ms}ms`);
+      }
       console.log(`[Executor]   Waiting for ${ms}ms`);
       await this.delay(ms);
     } else if (target === 'page to load' || target === 'page load' || target === 'networkidle') {
