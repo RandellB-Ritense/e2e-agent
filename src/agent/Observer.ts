@@ -106,7 +106,18 @@ export class Observer {
         '.hamburger',
         '.menu-toggle',
         '.nav-toggle',
-        '[role="button"][aria-haspopup]'
+        '[role="button"][aria-haspopup]',
+        // Carbon Design System patterns
+        'cds-header-menu-button',
+        'cds-side-nav-menu-button',
+        '.cds--header__menu-trigger',
+        '.cds--side-nav__toggle',
+        'button.cds--header__action',
+        // Also check for buttons inside nav/side-nav
+        'cds-side-nav button',
+        'cds-header button',
+        '.cds--side-nav button',
+        '.cds--header button'
       ].join(', '));
 
       expandTriggers.forEach((trigger) => {
@@ -162,6 +173,15 @@ export class Observer {
       function looksLikeNavigationItem(element: HTMLElement): boolean {
         const tagName = element.tagName.toLowerCase();
 
+        // Carbon Design System: Check for cds-side-nav-link, cds-side-nav-menu-item
+        if (tagName === 'cds-side-nav-link' ||
+            tagName === 'cds-side-nav-menu-item' ||
+            tagName === 'cds-side-nav-item' ||
+            element.classList.contains('cds--side-nav__link') ||
+            element.classList.contains('cds--side-nav__menu-item')) {
+          return true;
+        }
+
         // Check if it's a link or button with text
         if (tagName === 'a' || tagName === 'button') {
           const text = element.textContent?.trim() || '';
@@ -174,6 +194,7 @@ export class Observer {
               const parentRole = parent.getAttribute('role')?.toLowerCase() || '';
 
               if (
+                // Standard patterns
                 parentTag === 'nav' ||
                 parentRole === 'navigation' ||
                 parentRole === 'menu' ||
@@ -181,7 +202,13 @@ export class Observer {
                 parentClass.includes('nav') ||
                 parentClass.includes('menu') ||
                 parentClass.includes('sidebar') ||
-                parentClass.includes('drawer')
+                parentClass.includes('drawer') ||
+                // Carbon Design System patterns
+                parentTag === 'cds-side-nav' ||
+                parentTag === 'cds-header' ||
+                parentTag === 'cds-side-nav-menu' ||
+                parentClass.includes('cds--side-nav') ||
+                parentClass.includes('cds--header')
               ) {
                 return true;
               }
@@ -378,6 +405,14 @@ export class Observer {
         '[role="checkbox"]',
         '[role="radio"]',
         '[onclick]',
+        // Carbon Design System components
+        'cds-side-nav-link',
+        'cds-side-nav-menu-item',
+        'cds-side-nav-item',
+        'cds-header-menu-item',
+        '.cds--side-nav__link',
+        '.cds--side-nav__menu-item',
+        '.cds--header__menu-item',
       ].join(', ');
 
       const nodes = document.querySelectorAll(selector);
